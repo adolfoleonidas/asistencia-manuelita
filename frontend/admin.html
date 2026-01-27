@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel de Control - Manuelita</title>
+    <meta name="theme-color" content="#16a34a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--primary:#16a34a;--primary-dark:#15803d;--primary-light:#dcfce7;--success:#059669;--success-light:#d1fae5;--warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fee2e2;--info:#0284c7;--info-light:#e0f2fe;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;--sidebar-w:260px;--header-h:70px;--radius:12px;--radius-sm:8px}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray-100);color:var(--gray-800);line-height:1.5}
+        .login-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,var(--primary-light) 0%,var(--gray-100) 100%)}
+        .login-card{background:#fff;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.1);width:100%;max-width:420px;overflow:hidden}
+        .login-header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:#fff;padding:40px 30px;text-align:center}
+        .login-logo{width:80px;height:80px;border-radius:var(--radius-sm);object-fit:contain;margin:0 auto 16px;display:block;background:#fff;padding:8px}
+        .login-header h1{font-size:24px;font-weight:800;margin-bottom:4px}
+        .login-header p{opacity:.9;font-size:14px}
+        .login-body{padding:30px}
+        .login-form .form-group{margin-bottom:20px}
+        .login-form label{display:block;font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:8px}
+        .login-form input{width:100%;padding:14px 16px;border:2px solid var(--gray-200);border-radius:var(--radius-sm);font-family:inherit;font-size:15px;transition:all .2s}
+        .login-form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-light)}
+        .login-form input::placeholder{color:var(--gray-400)}
+        .login-btn{width:100%;padding:16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+        .login-btn:hover{background:var(--primary-dark)}
+        .login-btn:disabled{opacity:.6;cursor:not-allowed}
+        .login-error{background:var(--error-light);color:var(--error);padding:12px 16px;border-radius:var(--radius-sm);font-size:14px;margin-bottom:20px;display:none}
+        .login-error.show{display:block}
+        .login-footer{text-align:center;padding:20px;border-top:1px solid var(--gray-200);font-size:13px;color:var(--gray-500)}
+        .app{display:none;min-height:100vh}
+        .app.show{display:flex}
+        .sidebar{width:var(--sidebar-w);background:#fff;border-right:1px solid var(--gray-200);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+        .sidebar-header{padding:20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:12px}
+        .sidebar-logo{width:44px;height:44px;border-radius:var(--radius-sm);object-fit:contain;background:#fff;padding:4px;border:1px solid var(--gray-200)}
+        .sidebar-brand h1{font-size:18px;font-weight:700;color:var(--gray-900)}
+        .sidebar-brand span{font-size:12px;color:var(--gray-500)}
+        .sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+        .nav-section{margin-bottom:24px}
+        .nav-section-title{font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;padding:0 12px;margin-bottom:8px}
+        .nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-sm);color:var(--gray-600);text-decoration:none;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:4px}
+        .nav-item:hover{background:var(--gray-100);color:var(--gray-900)}
+        .nav-item.active{background:var(--primary-light);color:var(--primary)}
+        .nav-item svg{width:20px;height:20px;flex-shrink:0}
+        .nav-item .badge{margin-left:auto;background:var(--primary);color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+        .nav-item.hidden{display:none}
+        .sidebar-footer{padding:16px;border-top:1px solid var(--gray-200)}
+        .user-info{display:flex;align-items:center;gap:12px;padding:12px;background:var(--gray-50);border-radius:var(--radius-sm);margin-bottom:12px}
+        .user-avatar{width:40px;height:40px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--primary)}
+        .user-details{flex:1;min-width:0}
+        .user-name{font-size:14px;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .user-role{font-size:12px;color:var(--gray-500)}
+        .user-role.super{color:var(--primary);font-weight:600}
+        .sync-status{display:flex;align-items:center;gap:8px;padding:12px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:13px;color:var(--gray-600)}
+        .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--success)}
+        .sync-dot.offline{background:var(--warning)}
+        .logout-btn{width:100%;padding:10px;background:transparent;color:var(--gray-600);border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+        .logout-btn:hover{background:var(--error-light);color:var(--error);border-color:var(--error)}
+        .main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column}
+        .header{height:var(--header-h);background:#fff;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50}
+        .header-left{display:flex;align-items:center;gap:16px}
+        .menu-toggle{display:none;width:40px;height:40px;border:none;background:var(--gray-100);border-radius:var(--radius-sm);cursor:pointer;align-items:center;justify-content:center}
+        .page-title{font-size:20px;font-weight:700;color:var(--gray-900)}
+        .header-right{display:flex;align-items:center;gap:12px}
+        .header-datetime{font-size:14px;color:var(--gray-500);display:flex;align-items:center;gap:8px}
+        .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:var(--primary-dark)}
+        .btn-secondary{background:#fff;color:var(--gray-700);border:1px solid var(--gray-300)}
+        .btn-secondary:hover{background:var(--gray-50)}
+        .btn-danger{background:var(--error);color:#fff}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-sm{padding:6px 12px;font-size:13px}
+        .content{flex:1;padding:24px;overflow-y:auto}
+        .page{display:none;animation:fadeIn .3s}
+        .page.active{display:block}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:24px}
+        .stat-card{background:#fff;border-radius:var(--radius);padding:20px;border:1px solid var(--gray-200)}
+        .stat-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        .stat-card-icon{width:44px;height:44px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:20px}
+        .stat-card-icon.green{background:var(--primary-light)}
+        .stat-card-icon.blue{background:var(--info-light)}
+        .stat-card-icon.yellow{background:var(--warning-light)}
+        .stat-card-icon.red{background:var(--error-light)}
+        .stat-card-value{font-size:32px;font-weight:800;color:var(--gray-900);line-height:1;margin-bottom:4px}
+        .stat-card-label{font-size:14px;color:var(--gray-500)}
+        .dashboard-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}
+        .card{background:#fff;border-radius:var(--radius);border:1px solid var(--gray-200);overflow:hidden}
+        .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between}
+        .card-header h2{font-size:16px;font-weight:600;color:var(--gray-900);display:flex;align-items:center;gap:8px}
+        .card-body{padding:20px}
+        .card-body.no-padding{padding:0}
+        .activity-list{list-style:none}
+        .activity-item{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--gray-100);transition:background .2s}
+        .activity-item:last-child{border-bottom:none}
+        .activity-item:hover{background:var(--gray-50)}
+        .activity-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+        .activity-icon.entrada{background:var(--success-light)}
+        .activity-icon.salida{background:var(--info-light)}
+        .activity-content{flex:1;min-width:0}
+        .activity-name{font-weight:600;color:var(--gray-900);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .activity-detail{font-size:13px;color:var(--gray-500)}
+        .activity-time{font-size:13px;color:var(--gray-400);font-weight:500;white-space:nowrap}
+        .quick-stats{display:flex;flex-direction:column;gap:16px}
+        .quick-stat{display:flex;align-items:center;justify-content:space-between;padding:16px;background:var(--gray-50);border-radius:var(--radius-sm)}
+        .quick-stat-label{font-size:14px;color:var(--gray-600)}
+        .quick-stat-value{font-size:18px;font-weight:700;color:var(--gray-900)}
+        .table-controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+        .search-box{flex:1;min-width:200px;position:relative}
+        .search-box input{width:100%;padding:10px 16px 10px 40px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;transition:all .2s}
+        .search-box input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+        .search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-400);width:18px;height:18px}
+        .filter-group{display:flex;gap:8px;flex-wrap:wrap}
+        .filter-group input,.filter-group select{padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;background:#fff}
+        .table-container{overflow-x:auto;border:1px solid var(--gray-200);border-radius:var(--radius)}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px 16px;text-align:left}
+        th{background:var(--gray-50);font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--gray-200)}
+        td{font-size:14px;color:var(--gray-700);border-bottom:1px solid var(--gray-100)}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:var(--gray-50)}
+        .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600}
+        .badge.entrada{background:var(--success-light);color:var(--success)}
+        .badge.salida{background:var(--info-light);color:var(--info)}
+        .badge.super_admin{background:var(--primary-light);color:var(--primary)}
+        .badge.admin{background:var(--info-light);color:var(--info)}
+        .action-btns{display:flex;gap:8px;flex-wrap:wrap}
+        .empty-state{text-align:center;padding:60px 20px;color:var(--gray-500)}
+        .empty-state h3{font-size:16px;font-weight:600;color:var(--gray-700);margin-bottom:8px}
+        .puntos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+        .punto-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);padding:20px;text-align:center}
+        .punto-card h3{font-size:16px;font-weight:600;color:var(--gray-900);margin-bottom:16px}
+        .punto-qr{background:#fff;padding:16px;border-radius:var(--radius-sm);display:inline-block;margin-bottom:16px;border:1px solid var(--gray-200)}
+        .punto-url{font-size:11px;color:var(--gray-500);word-break:break-all;margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:var(--radius-sm);font-family:monospace}
+        .punto-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+        .config-section{background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:20px}
+        .config-section-header{padding:16px 20px;border-bottom:1px solid var(--gray-200)}
+        .config-section-header h3{font-size:16px;font-weight:600;color:var(--gray-900)}
+        .config-section-header p{font-size:13px;color:var(--gray-500);margin-top:4px}
+        .config-section-body{padding:20px}
+        .config-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--gray-100);flex-wrap:wrap;gap:12px}
+        .config-row:last-child{border-bottom:none}
+        .config-label{font-size:14px;font-weight:500;color:var(--gray-700)}
+        .config-label span{display:block;font-size:13px;font-weight:400;color:var(--gray-500);margin-top:2px}
+        .config-input{width:280px;padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:14px}
+        .config-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+        .config-input.full{width:100%}
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+        .modal.show{display:flex}
+        .modal-content{background:#fff;border-radius:var(--radius);width:100%;max-width:500px;max-height:90vh;overflow:hidden;animation:modalIn .3s;display:flex;flex-direction:column}
+        @keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+        .modal-header{padding:20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between}
+        .modal-header h2{font-size:18px;font-weight:600}
+        .modal-close{width:32px;height:32px;border:none;background:var(--gray-100);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-500);transition:all .2s}
+        .modal-close:hover{background:var(--error-light);color:var(--error)}
+        .modal-body{padding:20px;overflow-y:auto;flex:1}
+        .modal-footer{padding:16px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:12px}
+        .form-group{margin-bottom:20px}
+        .form-group label{display:block;font-size:14px;font-weight:500;color:var(--gray-700);margin-bottom:8px}
+        .form-group input,.form-group select{width:100%;padding:12px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:14px}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+        .form-group small{display:block;margin-top:6px;font-size:12px;color:var(--gray-500)}
+        .toast{position:fixed;bottom:24px;right:24px;padding:16px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;display:flex;align-items:center;gap:12px;z-index:300;opacity:0;transform:translateY(20px);transition:all .3s;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+        .toast.show{opacity:1;transform:translateY(0)}
+        .toast.success{background:var(--success);color:#fff}
+        .toast.error{background:var(--error);color:#fff}
+        .toast.warning{background:var(--warning);color:#fff}
+        .loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:none;align-items:center;justify-content:center;z-index:400}
+        .loading-overlay.show{display:flex}
+        .spinner{width:40px;height:40px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .alert{padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:14px}
+        .alert-info{background:var(--info-light);color:var(--info);border:1px solid var(--info)}
+        .alert-warning{background:var(--warning-light);color:#92400e;border:1px solid var(--warning)}
+        .toggle-switch{position:relative;display:inline-block;width:50px;height:26px}
+        .toggle-switch input{opacity:0;width:0;height:0}
+        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--gray-300);border-radius:26px;transition:.3s}
+        .toggle-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+        .toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+        .toggle-switch input:checked+.toggle-slider:before{transform:translateX(24px)}
+        @media(max-width:1200px){.stats-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}}
+        @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:flex}.stats-grid{grid-template-columns:1fr 1fr}.header-datetime{display:none}.table-controls{flex-direction:column;align-items:stretch}.search-box{min-width:100%}.config-input{width:100%}.content{padding:16px}.header{padding:0 16px}.btn{padding:10px 14px;font-size:13px}.puntos-grid{grid-template-columns:1fr}}
+        @media(max-width:480px){.stats-grid{grid-template-columns:1fr}.stat-card{padding:16px}.stat-card-value{font-size:24px}.action-btns{flex-direction:column}.action-btns .btn{width:100%}.filter-group{width:100%}.filter-group input,.filter-group select{flex:1}.login-body{padding:20px}.login-header{padding:30px 20px}.modal-content{margin:10px}.toast{left:16px;right:16px;transform:translateX(0) translateY(100px)}.toast.show{transform:translateX(0) translateY(0)}}
+        .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
+        .overlay.show{display:block}
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-card">
+            <div class="login-header">
+                <img src="https://mrqfeynhafxtfjqmjaxb.supabase.co/storage/v1/object/public/driver-images/drivers/1766979760638-y186di.jpg" alt="Manuelita" class="login-logo">
+                <h1>MANUELITA</h1>
+                <p>Panel de Control de Asistencia</p>
+            </div>
+            <div class="login-body">
+                <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+                <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="loginUsername" placeholder="Ingresa tu usuario" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <span>Iniciar Sesión</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    </button>
+                </form>
+            </div>
+            <div class="login-footer">
+                Sistema de Control de Asistencia v3.0
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app" id="mainApp">
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="https://mrqfeynhafxtfjqmjaxb.supabase.co/storage/v1/object/public/driver-images/drivers/1766979760638-y186di.jpg" alt="Manuelita" class="sidebar-logo">
+                <div class="sidebar-brand"><h1>Manuelita</h1><span>Control de Asistencia</span></div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <a class="nav-item active" onclick="showPage('dashboard',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        Dashboard
+                    </a>
+                    <a class="nav-item" onclick="showPage('trabajadores',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Trabajadores<span class="badge" id="badgeTrabajadores">0</span>
+                    </a>
+                    <a class="nav-item" onclick="showPage('asistencias',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Asistencias
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Herramientas</div>
+                    <a class="nav-item" onclick="showPage('puntos',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h.01M7 12h.01M7 17h.01M12 7h.01M12 12h.01M12 17h.01M17 7h.01M17 12h.01M17 17h.01"/></svg>
+                        Puntos QR
+                    </a>
+                    <a class="nav-item" id="navUsuarios" onclick="showPage('usuarios',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        Usuarios Admin
+                    </a>
+                    <a class="nav-item" id="navConfiguracion" onclick="showPage('configuracion',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        Configuración
+                    </a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Administrador</div>
+                    </div>
+                </div>
+                <div class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Conectado</span></div>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Cerrar Sesión
+                </button>
+            </div>
+        </aside>
+        <main class="main">
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="header-datetime" id="headerDatetime"></div>
+                    <button class="btn btn-secondary" onclick="syncData()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span class="btn-text">Sincronizar</span></button>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Dashboard -->
+                <div class="page active" id="page-dashboard">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon green">👷</div></div><div class="stat-card-value" id="statPresentes">0</div><div class="stat-card-label">Presentes ahora</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon blue">✅</div></div><div class="stat-card-value" id="statEntradas">0</div><div class="stat-card-label">Entradas hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon yellow">🚪</div></div><div class="stat-card-value" id="statSalidas">0</div><div class="stat-card-label">Salidas hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon red">📊</div></div><div class="stat-card-value" id="statTotal">0</div><div class="stat-card-label">Total registros</div></div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="card"><div class="card-header"><h2>📋 Actividad Reciente</h2><button class="btn btn-sm btn-secondary" onclick="showPage('asistencias',document.querySelector('[onclick*=asistencias]'))">Ver todo</button></div><div class="card-body no-padding"><ul class="activity-list" id="activityList"></ul></div></div>
+                        <div class="card"><div class="card-header"><h2>📈 Resumen</h2></div><div class="card-body"><div class="quick-stats"><div class="quick-stat"><span class="quick-stat-label">Trabajadores</span><span class="quick-stat-value" id="quickTrabajadores">0</span></div><div class="quick-stat"><span class="quick-stat-label">Asistencia hoy</span><span class="quick-stat-value" id="quickAsistencia">0%</span></div><div class="quick-stat"><span class="quick-stat-label">Puntos activos</span><span class="quick-stat-value" id="quickPuntos">0</span></div></div></div></div>
+                    </div>
+                </div>
+                <!-- Trabajadores -->
+                <div class="page" id="page-trabajadores">
+                    <div class="table-controls">
+                        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar trabajador..." id="searchTrabajador" oninput="filterTrabajadores()"></div>
+                        <button class="btn btn-primary" onclick="openModalTrabajador()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="btn-text">Agregar</span></button>
+                        <button class="btn btn-secondary" onclick="exportTrabajadores()">📄 <span class="btn-text">Exportar</span></button>
+                    </div>
+                    <div class="table-container"><table><thead><tr><th>DNI</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Acciones</th></tr></thead><tbody id="tablaTrabajadores"></tbody></table></div>
+                </div>
+                <!-- Asistencias -->
+                <div class="page" id="page-asistencias">
+                    <div class="table-controls">
+                        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar..." id="searchAsistencia" oninput="filterAsistencias()"></div>
+                        <div class="filter-group"><input type="date" id="filterFecha" onchange="filterAsistencias()"><select id="filterTipo" onchange="filterAsistencias()"><option value="">Todos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select></div>
+                        <button class="btn btn-primary" onclick="exportAsistencias()">📄 <span class="btn-text">Exportar PDF</span></button>
+                    </div>
+                    <div class="table-container"><table><thead><tr><th>Trabajador</th><th>DNI</th><th>Tipo</th><th>Fecha</th><th>Hora</th><th>Punto</th><th>Ubicación</th></tr></thead><tbody id="tablaAsistencias"></tbody></table></div>
+                </div>
+                <!-- Puntos QR -->
+                <div class="page" id="page-puntos">
+                    <div class="alert alert-info">
+                        ℹ️ <strong>¿Cómo funciona?</strong> Cada punto genera un código QR. Imprime el QR y colócalo en la entrada. Los trabajadores lo escanean con su celular para marcar asistencia.
+                    </div>
+                    <div class="table-controls"><button class="btn btn-primary" id="btnAgregarPunto" onclick="openModalPunto()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="btn-text">Agregar Punto</span></button></div>
+                    <div class="puntos-grid" id="puntosGrid"></div>
+                </div>
+                <!-- Usuarios Admin -->
+                <div class="page" id="page-usuarios">
+                    <div class="alert alert-info">
+                        👥 <strong>Gestión de Usuarios</strong> - Aquí puedes crear y administrar los usuarios que tendrán acceso al panel de control. Solo los <strong>Super Admin</strong> pueden gestionar usuarios.
+                    </div>
+                    <div class="table-controls">
+                        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar usuario..." id="searchUsuario" oninput="filterUsuarios()"></div>
+                        <button class="btn btn-primary" onclick="openModalUsuario()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="btn-text">Agregar Usuario</span></button>
+                    </div>
+                    <div class="table-container"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
+                </div>
+                <!-- Configuración -->
+                <div class="page" id="page-configuracion">
+                    <div class="config-section">
+                        <div class="config-section-header"><h3>🌐 URL de tu sitio web</h3><p>La dirección donde se accede al sistema</p></div>
+                        <div class="config-section-body">
+                            <div class="form-group">
+                                <label>URL Base (sin el nombre del archivo)</label>
+                                <input type="text" class="config-input full" id="configBaseUrl" placeholder="https://tudominio.com/asistencia/">
+                                <small>Ejemplo: https://miempresa.com/asistencia/ o https://miempresa.com/</small>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveLocalConfig()">💾 Guardar Configuración</button>
+                        </div>
+                    </div>
+                    <div class="config-section">
+                        <div class="config-section-header"><h3>🔗 Google Sheets (Opcional)</h3><p>Sincronización de datos con Google Sheets</p></div>
+                        <div class="config-section-body">
+                            <div class="config-row">
+                                <div class="config-label">Sincronizar con Google Sheets<span>Los datos se copiarán automáticamente a tu hoja de cálculo</span></div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="configSheetsSync" onchange="toggleSheetsSync()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-section">
+                        <div class="config-section-header"><h3>💾 Datos</h3><p>Gestiona los datos almacenados</p></div>
+                        <div class="config-section-body">
+                            <div class="config-row">
+                                <div class="config-label">Exportar Backup<span>Descarga todos los datos en JSON</span></div>
+                                <button class="btn btn-secondary" onclick="downloadBackup()">⬇️ Descargar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Trabajador -->
+    <div class="modal" id="modalTrabajador">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="modalTrabajadorTitle">Agregar Trabajador</h2><button class="modal-close" onclick="closeModalTrabajador()">✕</button></div>
+            <div class="modal-body">
+                <form id="formTrabajador" onsubmit="saveTrabajador(event)">
+                    <input type="hidden" id="editingDni">
+                    <div class="form-group"><label>DNI *</label><input type="text" id="inputDni" maxlength="8" pattern="[0-9]{8}" placeholder="8 dígitos" required></div>
+                    <div class="form-group"><label>Nombres y Apellidos *</label><input type="text" id="inputNombre" placeholder="Nombre completo" required></div>
+                    <div class="form-group"><label>Cargo *</label><input type="text" id="inputCargo" placeholder="Cargo" required></div>
+                    <div class="form-group"><label>Área *</label><input type="text" id="inputArea" placeholder="Área" required></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalTrabajador()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formTrabajador').requestSubmit()">Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Punto -->
+    <div class="modal" id="modalPunto">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Agregar Punto de Marcación</h2><button class="modal-close" onclick="closeModalPunto()">✕</button></div>
+            <div class="modal-body">
+                <form id="formPunto" onsubmit="savePunto(event)">
+                    <div class="form-group"><label>Nombre del punto *</label><input type="text" id="inputPuntoNombre" placeholder="Ej: Entrada Principal" required></div>
+                    <div class="form-group"><label>ID único *</label><input type="text" id="inputPuntoId" placeholder="Ej: ENTRADA_PRINCIPAL" required><small>Sin espacios, usar guiones bajos (_)</small></div>
+                    <div class="form-group"><label>Latitud</label><input type="text" id="inputPuntoLat" placeholder="-14.0678"></div>
+                    <div class="form-group"><label>Longitud</label><input type="text" id="inputPuntoLng" placeholder="-75.7286"></div>
+                    <div class="form-group"><label>Radio en metros</label><input type="number" id="inputPuntoRadio" value="150"></div>
+                    <button type="button" class="btn btn-secondary" onclick="usarMiUbicacionPunto()" style="width:100%">📍 Usar mi ubicación actual</button>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalPunto()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formPunto').requestSubmit()">Crear Punto</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Usuario -->
+    <div class="modal" id="modalUsuario">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="modalUsuarioTitle">Agregar Usuario</h2><button class="modal-close" onclick="closeModalUsuario()">✕</button></div>
+            <div class="modal-body">
+                <form id="formUsuario" onsubmit="saveUsuario(event)">
+                    <input type="hidden" id="editingUsuarioId">
+                    <div class="form-group">
+                        <label>Nombre de Usuario *</label>
+                        <input type="text" id="inputUsuario" placeholder="Ej: admin2" required autocomplete="off">
+                        <small>Sin espacios, solo letras y números</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="inputUsuarioNombre" placeholder="Ej: María García" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña *</label>
+                        <input type="password" id="inputUsuarioPassword" placeholder="Mínimo 4 caracteres" required autocomplete="new-password">
+                        <small id="passwordHint">Crea una contraseña segura</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Rol *</label>
+                        <select id="inputUsuarioRol" required>
+                            <option value="admin">Administrador</option>
+                            <option value="super_admin">Super Administrador</option>
+                        </select>
+                        <small>Los Super Admin pueden gestionar usuarios y configuración avanzada</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalUsuario()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formUsuario').requestSubmit()">Guardar</button></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
+
+    <script>
+// ===================== API CONFIGURATION =====================
+const API_BASE = window.location.origin + '/api';
+
+const API = {
+    _token: null,
+    setToken(token) { this._token = token; localStorage.setItem('manuelita_token', token); },
+    getToken() { return this._token || localStorage.getItem('manuelita_token'); },
+    clearToken() { this._token = null; localStorage.removeItem('manuelita_token'); },
+    _headers() {
+        const h = { 'Content-Type': 'application/json' };
+        const t = this.getToken();
+        if (t) h['Authorization'] = 'Bearer ' + t;
+        return h;
+    },
+    async get(path) {
+        const res = await fetch(API_BASE + path, { headers: this._headers() });
+        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
+        return res.json();
+    },
+    async post(path, body) {
+        const res = await fetch(API_BASE + path, { method: 'POST', headers: this._headers(), body: JSON.stringify(body) });
+        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
+        return res.json();
+    },
+    async put(path, body) {
+        const res = await fetch(API_BASE + path, { method: 'PUT', headers: this._headers(), body: JSON.stringify(body) });
+        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
+        return res.json();
+    },
+    async del(path) {
+        const res = await fetch(API_BASE + path, { method: 'DELETE', headers: this._headers() });
+        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
+        return res.json();
+    }
+};
+
+let state = {
+    trabajadores: [],
+    asistencias: [],
+    puntos: [],
+    usuarios: [],
+    config: {},
+    currentUser: null
+};
+
+// ===================== AUTENTICACIÓN =====================
+async function initAuth() {
+    const session = localStorage.getItem('manuelita_session');
+    const token = API.getToken();
+    if (session && token) {
+        try {
+            const sessionData = JSON.parse(session);
+            const loginTime = new Date(sessionData.loginAt).getTime();
+            const hoursElapsed = (Date.now() - loginTime) / (1000 * 60 * 60);
+            if (hoursElapsed < 24 && sessionData.user) {
+                state.currentUser = sessionData.user;
+                showApp();
+                return;
+            }
+        } catch (e) { console.log('Sesión inválida'); }
+    }
+    showLogin();
+}
+
+function showLogin() {
+    document.getElementById('loginContainer').style.display = 'flex';
+    document.getElementById('mainApp').classList.remove('show');
+}
+
+function showApp() {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('mainApp').classList.add('show');
+    updateUserUI();
+    loadConfig();
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    document.getElementById('filterFecha').valueAsDate = new Date();
+    syncData();
+    checkConnection();
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px"></div> Validando...';
+
+    try {
+        const result = await API.post('/auth/login', { username, password });
+
+        if (result.success && result.data) {
+            API.setToken(result.data.token);
+            state.currentUser = result.data.user;
+            localStorage.setItem('manuelita_session', JSON.stringify({
+                user: result.data.user,
+                loginAt: new Date().toISOString()
+            }));
+            errorEl.classList.remove('show');
+            showApp();
+            showToast('✅ ¡Bienvenido, ' + result.data.user.nombre + '!', 'success');
+        } else {
+            errorEl.textContent = result.error || 'Usuario o contraseña incorrectos';
+            errorEl.classList.add('show');
+            document.getElementById('loginPassword').value = '';
+        }
+    } catch (error) {
+        errorEl.textContent = 'Error de conexión. Verifica tu internet.';
+        errorEl.classList.add('show');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span>Iniciar Sesión</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+    }
+}
+
+function handleLogout() {
+    state.currentUser = null;
+    state.usuarios = [];
+    API.clearToken();
+    localStorage.removeItem('manuelita_session');
+    showLogin();
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').classList.remove('show');
+}
+
+function updateUserUI() {
+    if (!state.currentUser) return;
+    const user = state.currentUser;
+    document.getElementById('userAvatar').textContent = user.nombre.charAt(0).toUpperCase();
+    document.getElementById('userName').textContent = user.nombre;
+    const isSA = user.rol === 'super_admin';
+    document.getElementById('userRole').textContent = isSA ? 'Super Admin' : 'Administrador';
+    document.getElementById('userRole').className = 'user-role' + (isSA ? ' super' : '');
+    document.getElementById('navUsuarios').classList.toggle('hidden', !isSA);
+    document.getElementById('navConfiguracion').classList.toggle('hidden', !isSA);
+    document.getElementById('btnAgregarPunto').style.display = isSA ? 'inline-flex' : 'none';
+}
+
+function isSuperAdmin() {
+    return state.currentUser && state.currentUser.rol === 'super_admin';
+}
+
+// ===================== GESTIÓN DE USUARIOS =====================
+async function loadUsers() {
+    try {
+        const result = await API.get('/users');
+        if (result.success && result.data) state.usuarios = result.data;
+    } catch (e) { console.log('Error cargando usuarios:', e); }
+}
+
+async function updateTablaUsuarios() {
+    const tbody = document.getElementById('tablaUsuarios');
+    const search = document.getElementById('searchUsuario').value.toLowerCase();
+    if (state.usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--gray-400)"><div class="spinner" style="margin:0 auto 12px"></div>Cargando usuarios...</td></tr>';
+        await loadUsers();
+    }
+    let filtered = state.usuarios;
+    if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nombre.toLowerCase().includes(search));
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay usuarios</h3><p>Agrega usuarios para que accedan al sistema</p></td></tr>';
+        return;
+    }
+    tbody.innerHTML = filtered.map(u => {
+        const isCurrentUser = state.currentUser && u.id === state.currentUser.id;
+        const canDelete = !isCurrentUser && isSuperAdmin();
+        const rolBadge = u.rol === 'super_admin' ? 'super_admin' : 'admin';
+        const rolText = u.rol === 'super_admin' ? 'Super Admin' : 'Admin';
+        const createdDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-PE') : '-';
+        return '<tr><td><strong>' + u.username + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td>' + u.nombre + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editUsuario(' + JSON.stringify(u).replace(/'/g, "\\'") + ')\'>Editar</button>' + (canDelete ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')">Eliminar</button>' : '') + '</div></td></tr>';
+    }).join('');
+}
+
+function filterUsuarios() { updateTablaUsuarios(); }
+function openModalUsuario(u) {
+    if (!isSuperAdmin()) { showToast('❌ Solo los Super Admin pueden gestionar usuarios', 'error'); return; }
+    const form = document.getElementById('formUsuario');
+    form.reset();
+    document.getElementById('editingUsuarioId').value = '';
+    document.getElementById('inputUsuarioPassword').required = true;
+    document.getElementById('passwordHint').textContent = 'Crea una contraseña segura (mínimo 4 caracteres)';
+    if (u) {
+        document.getElementById('modalUsuarioTitle').textContent = 'Editar Usuario';
+        document.getElementById('editingUsuarioId').value = u.id;
+        document.getElementById('inputUsuario').value = u.username;
+        document.getElementById('inputUsuarioNombre').value = u.nombre;
+        document.getElementById('inputUsuarioRol').value = u.rol;
+        document.getElementById('inputUsuarioPassword').required = false;
+        document.getElementById('passwordHint').textContent = 'Deja vacío para mantener la contraseña actual';
+    } else {
+        document.getElementById('modalUsuarioTitle').textContent = 'Agregar Usuario';
+    }
+    document.getElementById('modalUsuario').classList.add('show');
+}
+function closeModalUsuario() { document.getElementById('modalUsuario').classList.remove('show'); }
+function editUsuario(u) { openModalUsuario(u); }
+
+async function saveUsuario(e) {
+    e.preventDefault();
+    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
+    const editingId = document.getElementById('editingUsuarioId').value;
+    const username = document.getElementById('inputUsuario').value.trim().toLowerCase().replace(/\s+/g, '');
+    const nombre = document.getElementById('inputUsuarioNombre').value.trim();
+    const password = document.getElementById('inputUsuarioPassword').value;
+    const rol = document.getElementById('inputUsuarioRol').value;
+    if (username.length < 3) { showToast('❌ El usuario debe tener al menos 3 caracteres', 'error'); return; }
+    if (!editingId && password.length < 4) { showToast('❌ La contraseña debe tener al menos 4 caracteres', 'error'); return; }
+    showLoading(true);
+    try {
+        const userData = { username, nombre, rol };
+        if (password) userData.password = password;
+        let result;
+        if (editingId) {
+            result = await API.put('/users/' + editingId, userData);
+        } else {
+            userData.password = password;
+            result = await API.post('/users', userData);
+        }
+        if (result.success) {
+            if (editingId && state.currentUser && state.currentUser.id === editingId) {
+                state.currentUser.username = username;
+                state.currentUser.nombre = nombre;
+                state.currentUser.rol = rol;
+                localStorage.setItem('manuelita_session', JSON.stringify({ user: state.currentUser, loginAt: new Date().toISOString() }));
+                updateUserUI();
+            }
+            closeModalUsuario();
+            showToast('✅ Usuario ' + (editingId ? 'actualizado' : 'creado'), 'success');
+            await loadUsers();
+            updateTablaUsuarios();
+        } else {
+            showToast('❌ ' + (result.error || 'Error al guardar'), 'error');
+        }
+    } catch (error) {
+        showToast('⚠️ Error al guardar. Intenta de nuevo.', 'error');
+    } finally { showLoading(false); }
+}
+
+async function deleteUsuario(id) {
+    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
+    if (state.currentUser && state.currentUser.id === id) { showToast('❌ No puedes eliminar tu propio usuario', 'error'); return; }
+    if (!confirm('¿Eliminar este usuario? Ya no podrá acceder al sistema.')) return;
+    showLoading(true);
+    try {
+        const result = await API.del('/users/' + id);
+        if (result.success) {
+            state.usuarios = state.usuarios.filter(u => u.id !== id);
+            updateTablaUsuarios();
+            showToast('✅ Usuario eliminado', 'success');
+        } else { showToast('❌ ' + (result.error || 'Error al eliminar'), 'error'); }
+    } catch (error) { showToast('⚠️ Error al eliminar', 'error'); }
+    finally { showLoading(false); }
+}
+
+// ===================== INICIALIZACIÓN =====================
+document.addEventListener('DOMContentLoaded', () => { initAuth(); });
+
+// ===================== CONFIG =====================
+function loadConfig() {
+    const saved = localStorage.getItem('manuelita_config');
+    state.config = saved ? JSON.parse(saved) : { BASE_URL: '' };
+    document.getElementById('configBaseUrl').value = state.config.BASE_URL || '';
+    if (isSuperAdmin()) loadSheetsToggle();
+}
+
+async function loadSheetsToggle() {
+    try {
+        const result = await API.get('/config/settings');
+        if (result.success && result.data) {
+            document.getElementById('configSheetsSync').checked = result.data.sheets_sync_enabled === 'true';
+        }
+    } catch (e) {}
+}
+
+function saveLocalConfig() {
+    state.config.BASE_URL = document.getElementById('configBaseUrl').value.trim();
+    if (state.config.BASE_URL && !state.config.BASE_URL.endsWith('/')) state.config.BASE_URL += '/';
+    localStorage.setItem('manuelita_config', JSON.stringify(state.config));
+    showToast('✅ Configuración guardada', 'success');
+    updatePuntosGrid();
+}
+
+async function toggleSheetsSync() {
+    try {
+        const enabled = document.getElementById('configSheetsSync').checked;
+        await API.put('/config/settings', { sheets_sync_enabled: enabled ? 'true' : 'false' });
+        showToast('✅ Sincronización ' + (enabled ? 'activada' : 'desactivada'), 'success');
+    } catch (e) { showToast('❌ Error al cambiar configuración', 'error'); }
+}
+
+function getMarcarUrl() {
+    if (state.config.BASE_URL) return state.config.BASE_URL + 'marcar.html';
+    return window.location.href.replace(/admin\.html.*$/, 'marcar.html').replace(/\/admin\b.*$/, '/marcar.html');
+}
+
+function getApiBaseUrl() {
+    if (state.config.BASE_URL) {
+        const url = new URL(state.config.BASE_URL);
+        return url.origin + '/api';
+    }
+    return API_BASE;
+}
+
+// ===================== NAVEGACIÓN =====================
+function showPage(pageName, element) {
+    if ((pageName === 'usuarios' || pageName === 'configuracion') && !isSuperAdmin()) {
+        showToast('❌ No tienes permisos para acceder a esta sección', 'error');
+        return;
+    }
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    if (element) element.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + pageName).classList.add('active');
+    const titles = { 'dashboard': 'Dashboard', 'trabajadores': 'Trabajadores', 'asistencias': 'Asistencias', 'puntos': 'Puntos QR', 'usuarios': 'Usuarios Admin', 'configuracion': 'Configuración' };
+    document.getElementById('pageTitle').textContent = titles[pageName];
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    if (pageName === 'puntos') setTimeout(updatePuntosGrid, 100);
+    if (pageName === 'usuarios') loadUsers().then(() => updateTablaUsuarios());
+}
+
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+}
+
+// ===================== DASHBOARD =====================
+function updateDashboard() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = state.asistencias.filter(a => a.date === today);
+    const entradas = todayRecords.filter(a => a.tipo === 'ENTRADA');
+    const salidas = todayRecords.filter(a => a.tipo === 'SALIDA');
+    const presentes = new Set();
+    todayRecords.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(r => { if (r.tipo === 'ENTRADA') presentes.add(r.dni); else presentes.delete(r.dni); });
+    document.getElementById('statPresentes').textContent = presentes.size;
+    document.getElementById('statEntradas').textContent = entradas.length;
+    document.getElementById('statSalidas').textContent = salidas.length;
+    document.getElementById('statTotal').textContent = todayRecords.length;
+    document.getElementById('quickTrabajadores').textContent = state.trabajadores.length;
+    document.getElementById('quickPuntos').textContent = state.puntos.length;
+    const pct = state.trabajadores.length > 0 ? Math.round((new Set(entradas.map(e => e.dni)).size / state.trabajadores.length) * 100) : 0;
+    document.getElementById('quickAsistencia').textContent = pct + '%';
+    document.getElementById('badgeTrabajadores').textContent = state.trabajadores.length;
+    updateActivityList(todayRecords.slice(-10).reverse());
+}
+
+function updateActivityList(records) {
+    const list = document.getElementById('activityList');
+    if (records.length === 0) { list.innerHTML = '<li class="activity-item"><div style="text-align:center;width:100%;padding:30px;color:var(--gray-400)">No hay actividad hoy</div></li>'; return; }
+    list.innerHTML = records.map(r => '<li class="activity-item"><div class="activity-icon ' + r.tipo.toLowerCase() + '">' + (r.tipo === 'ENTRADA' ? '✅' : '🚪') + '</div><div class="activity-content"><div class="activity-name">' + r.nombre + '</div><div class="activity-detail">' + r.tipo + ' • ' + (r.punto || 'Principal') + '</div></div><div class="activity-time">' + r.time + '</div></li>').join('');
+}
+
+// ===================== TRABAJADORES =====================
+function updateTablaTrabajadores() {
+    const tbody = document.getElementById('tablaTrabajadores');
+    const search = document.getElementById('searchTrabajador').value.toLowerCase();
+    let filtered = state.trabajadores;
+    if (search) filtered = filtered.filter(t => t.DNI.includes(search) || t.NOMBRE.toLowerCase().includes(search) || t.CARGO.toLowerCase().includes(search) || t.AREA.toLowerCase().includes(search));
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
+    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + t.DNI + '</strong></td><td>' + t.NOMBRE + '</td><td>' + t.CARGO + '</td><td>' + t.AREA + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editTrabajador(' + JSON.stringify(t).replace(/'/g, "\\'") + ')\'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + t.DNI + '\')">Eliminar</button></div></td></tr>').join('');
+}
+
+function filterTrabajadores() { updateTablaTrabajadores(); }
+function openModalTrabajador(t) {
+    const form = document.getElementById('formTrabajador');
+    form.reset();
+    document.getElementById('editingDni').value = '';
+    document.getElementById('inputDni').disabled = false;
+    if (t) {
+        document.getElementById('modalTrabajadorTitle').textContent = 'Editar Trabajador';
+        document.getElementById('editingDni').value = t.DNI;
+        document.getElementById('inputDni').value = t.DNI;
+        document.getElementById('inputDni').disabled = true;
+        document.getElementById('inputNombre').value = t.NOMBRE;
+        document.getElementById('inputCargo').value = t.CARGO;
+        document.getElementById('inputArea').value = t.AREA;
+    } else {
+        document.getElementById('modalTrabajadorTitle').textContent = 'Agregar Trabajador';
+    }
+    document.getElementById('modalTrabajador').classList.add('show');
+}
+function closeModalTrabajador() { document.getElementById('modalTrabajador').classList.remove('show'); }
+function editTrabajador(t) { openModalTrabajador(t); }
+
+async function saveTrabajador(e) {
+    e.preventDefault();
+    const t = {
+        DNI: document.getElementById('inputDni').value.trim(),
+        NOMBRE: document.getElementById('inputNombre').value.trim().toUpperCase(),
+        CARGO: document.getElementById('inputCargo').value.trim().toUpperCase(),
+        AREA: document.getElementById('inputArea').value.trim().toUpperCase()
+    };
+    const editingDni = document.getElementById('editingDni').value;
+    showLoading(true);
+    try {
+        let result;
+        if (editingDni) {
+            result = await API.put('/employees/' + editingDni, { NOMBRE: t.NOMBRE, CARGO: t.CARGO, AREA: t.AREA });
+        } else {
+            result = await API.post('/employees', t);
+        }
+        if (result.success) {
+            closeModalTrabajador();
+            showToast('✅ Trabajador ' + (editingDni ? 'actualizado' : 'agregado'), 'success');
+            await loadEmployees();
+            updateAll();
+        } else {
+            showToast('❌ ' + (result.error || 'Error al guardar'), 'error');
+        }
+    } catch (error) { showToast('⚠️ Error al guardar', 'error'); }
+    finally { showLoading(false); }
+}
+
+async function deleteTrabajador(dni) {
+    if (!confirm('¿Eliminar este trabajador?')) return;
+    showLoading(true);
+    try {
+        const result = await API.del('/employees/' + dni);
+        if (result.success) {
+            showToast('✅ Trabajador eliminado', 'success');
+            await loadEmployees();
+            updateAll();
+        } else { showToast('❌ ' + (result.error || 'Error al eliminar'), 'error'); }
+    } catch (error) { showToast('⚠️ Error al eliminar', 'error'); }
+    finally { showLoading(false); }
+}
+
+// ===================== ASISTENCIAS =====================
+function updateTablaAsistencias() {
+    const tbody = document.getElementById('tablaAsistencias');
+    const search = document.getElementById('searchAsistencia').value.toLowerCase();
+    const fecha = document.getElementById('filterFecha').value;
+    const tipo = document.getElementById('filterTipo').value;
+    let filtered = state.asistencias;
+    if (fecha) filtered = filtered.filter(a => a.date === fecha);
+    if (tipo) filtered = filtered.filter(a => a.tipo === tipo);
+    if (search) filtered = filtered.filter(a => a.nombre.toLowerCase().includes(search) || a.dni.includes(search));
+    filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
+    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + a.nombre + '</strong></td><td>' + a.dni + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + a.tipo + '</span></td><td>' + a.date + '</td><td>' + a.time + '</td><td>' + (a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)">📍 Ver</a>' : '-') + '</td></tr>').join('');
+}
+function filterAsistencias() { updateTablaAsistencias(); }
+
+// ===================== PUNTOS QR =====================
+function updatePuntosGrid() {
+    const grid = document.getElementById('puntosGrid');
+    const baseUrl = getMarcarUrl();
+    const apiBase = getApiBaseUrl();
+    if (state.puntos.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No hay puntos configurados</h3><p>Crea tu primer punto de marcación</p></div>'; return; }
+    const canEdit = isSuperAdmin();
+    grid.innerHTML = state.puntos.map(p => {
+        const url = baseUrl + '?punto=' + p.id + '&api=' + encodeURIComponent(apiBase);
+        return '<div class="punto-card"><h3>📍 ' + p.nombre + '</h3><div class="punto-qr" id="qr-' + p.id + '"></div><div class="punto-url" style="font-size:10px">' + url + '</div><div class="punto-actions"><button class="btn btn-sm btn-secondary" onclick="copyUrl(\'' + url.replace(/'/g, "\\'") + '\')">📋 Copiar</button><button class="btn btn-sm btn-primary" onclick="downloadQR(\'' + p.id + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\')">⬇️ Descargar</button>' + (canEdit ? '<button class="btn btn-sm btn-danger" onclick="deletePunto(\'' + p.id + '\')">🗑️</button>' : '') + '</div></div>';
+    }).join('');
+    setTimeout(() => {
+        state.puntos.forEach(p => {
+            const container = document.getElementById('qr-' + p.id);
+            if (container && container.children.length === 0) {
+                const url = baseUrl + '?punto=' + p.id + '&api=' + encodeURIComponent(apiBase);
+                new QRCode(container, { text: url, width: 180, height: 180, colorDark: '#16a34a', colorLight: '#ffffff' });
+            }
+        });
+    }, 100);
+}
+
+function openModalPunto() {
+    if (!isSuperAdmin()) { showToast('❌ Solo los Super Admin pueden agregar puntos', 'error'); return; }
+    document.getElementById('modalPunto').classList.add('show');
+    document.getElementById('formPunto').reset();
+    document.getElementById('inputPuntoRadio').value = 150;
+}
+function closeModalPunto() { document.getElementById('modalPunto').classList.remove('show'); }
+
+async function savePunto(e) {
+    e.preventDefault();
+    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
+    const latVal = document.getElementById('inputPuntoLat').value.trim();
+    const lngVal = document.getElementById('inputPuntoLng').value.trim();
+    if (!latVal || !lngVal) { showToast('❌ Debes ingresar latitud y longitud.', 'error'); return; }
+    const punto = {
+        id: document.getElementById('inputPuntoId').value.trim().toUpperCase().replace(/\s+/g, '_'),
+        nombre: document.getElementById('inputPuntoNombre').value.trim(),
+        lat: parseFloat(latVal),
+        lng: parseFloat(lngVal),
+        radio: parseInt(document.getElementById('inputPuntoRadio').value) || 150,
+        activo: true
+    };
+    if (isNaN(punto.lat) || isNaN(punto.lng)) { showToast('❌ Coordenadas inválidas', 'error'); return; }
+    if (state.puntos.some(p => p.id === punto.id)) { showToast('❌ Ya existe un punto con ese ID', 'error'); return; }
+    state.puntos.push(punto);
+    closeModalPunto();
+    showToast('✅ Punto creado. Guardando...', 'success');
+    await syncPuntosToAPI();
+    updatePuntosGrid();
+}
+
+async function deletePunto(id) {
+    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
+    if (!confirm('¿Eliminar este punto?')) return;
+    state.puntos = state.puntos.filter(p => p.id !== id);
+    showToast('✅ Punto eliminado. Guardando...', 'success');
+    await syncPuntosToAPI();
+    updatePuntosGrid();
+}
+
+async function syncPuntosToAPI() {
+    try { await API.put('/config/points', state.puntos); } catch (e) { console.error('Error sincronizando puntos:', e); }
+}
+
+function copyUrl(url) { navigator.clipboard.writeText(url); showToast('📋 URL copiada', 'success'); }
+function downloadQR(id, nombre) {
+    const container = document.getElementById('qr-' + id);
+    const canvas = container.querySelector('canvas');
+    if (canvas) {
+        const link = document.createElement('a');
+        link.download = 'QR_' + nombre.replace(/\s+/g, '_') + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('⬇️ QR descargado', 'success');
+    }
+}
+
+// ===================== SINCRONIZACIÓN =====================
+async function loadEmployees() {
+    try {
+        const result = await API.get('/employees');
+        if (result.success && result.data) state.trabajadores = result.data;
+    } catch (e) { console.error('Error cargando empleados:', e); }
+}
+
+async function loadAttendance() {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const result = await API.get('/attendance?date=' + today);
+        if (result.success && result.data) state.asistencias = result.data;
+    } catch (e) { console.error('Error cargando asistencias:', e); }
+}
+
+async function loadPoints() {
+    try {
+        const result = await API.get('/config/points');
+        if (result.success && result.data) state.puntos = result.data;
+    } catch (e) { console.error('Error cargando puntos:', e); }
+}
+
+async function syncData() {
+    showLoading(true);
+    try {
+        await Promise.all([loadEmployees(), loadAttendance(), loadPoints()]);
+        updateAll();
+        showToast('✅ Datos sincronizados', 'success');
+    } catch (error) {
+        showToast('⚠️ Error al sincronizar', 'warning');
+    } finally { showLoading(false); }
+}
+
+function updateAll() {
+    updateDashboard();
+    updateTablaTrabajadores();
+    updateTablaAsistencias();
+    updatePuntosGrid();
+}
+
+function checkConnection() {
+    const dot = document.getElementById('syncDot');
+    const text = document.getElementById('syncText');
+    if (navigator.onLine) { dot.classList.remove('offline'); text.textContent = 'Conectado'; }
+    else { dot.classList.add('offline'); text.textContent = 'Sin conexión'; }
+}
+window.addEventListener('online', checkConnection);
+window.addEventListener('offline', checkConnection);
+
+// ===================== EXPORTAR =====================
+function exportTrabajadores() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(20); doc.setTextColor(22, 163, 74);
+    doc.text('Manuelita - Lista de Trabajadores', 14, 22);
+    doc.setFontSize(11); doc.setTextColor(100);
+    doc.text('Generado: ' + new Date().toLocaleString() + ' | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
+    doc.autoTable({ startY: 40, head: [['DNI', 'Nombre', 'Cargo', 'Área']], body: state.trabajadores.map(t => [t.DNI, t.NOMBRE, t.CARGO, t.AREA]), headStyles: { fillColor: [22, 163, 74] } });
+    doc.save('trabajadores_manuelita.pdf');
+    showToast('📄 PDF generado', 'success');
+}
+
+function exportAsistencias() {
+    const fecha = document.getElementById('filterFecha').value;
+    const filtered = state.asistencias.filter(a => a.date === fecha);
+    if (filtered.length === 0) { showToast('⚠️ No hay registros para exportar', 'warning'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l');
+    doc.setFontSize(20); doc.setTextColor(22, 163, 74);
+    doc.text('Manuelita - Reporte de Asistencia', 14, 22);
+    doc.setFontSize(11); doc.setTextColor(100);
+    doc.text('Fecha: ' + fecha + ' | Total: ' + filtered.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
+    doc.autoTable({ startY: 40, head: [['Trabajador', 'DNI', 'Tipo', 'Hora', 'Punto']], body: filtered.map(a => [a.nombre, a.dni, a.tipo, a.time, a.punto || '-']), headStyles: { fillColor: [22, 163, 74] } });
+    doc.save('asistencia_' + fecha + '.pdf');
+    showToast('📄 PDF generado', 'success');
+}
+
+async function downloadBackup() {
+    showLoading(true);
+    try {
+        const [empRes, attRes, ptsRes] = await Promise.all([
+            API.get('/employees'),
+            API.get('/attendance'),
+            API.get('/config/points')
+        ]);
+        const backup = {
+            fecha: new Date().toISOString(),
+            exportadoPor: state.currentUser?.nombre || 'Admin',
+            trabajadores: empRes.data || [],
+            asistencias: attRes.data || [],
+            puntos: ptsRes.data || []
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'backup_manuelita_' + new Date().toISOString().split('T')[0] + '.json';
+        a.click(); URL.revokeObjectURL(url);
+        showToast('⬇️ Backup descargado', 'success');
+    } catch (e) { showToast('❌ Error al generar backup', 'error'); }
+    finally { showLoading(false); }
+}
+
+// ===================== GPS UTILIDADES =====================
+function usarMiUbicacionPunto() {
+    if (!navigator.geolocation) { showToast('❌ Geolocalización no soportada', 'error'); return; }
+    showToast('📍 Obteniendo ubicación...', 'warning');
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            document.getElementById('inputPuntoLat').value = position.coords.latitude.toFixed(6);
+            document.getElementById('inputPuntoLng').value = position.coords.longitude.toFixed(6);
+            showToast('✅ Ubicación obtenida', 'success');
+        },
+        function(error) {
+            let msg = 'Error obteniendo ubicación';
+            if (error.code === 1) msg = 'Permiso de ubicación denegado';
+            else if (error.code === 3) msg = 'Tiempo agotado obteniendo ubicación';
+            showToast('❌ ' + msg, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+    );
+}
+
+// ===================== UTILIDADES =====================
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById('headerDatetime').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ' + now.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }) + ' • ' + now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+}
+function showLoading(show) { document.getElementById('loading').classList.toggle('show', show); }
+function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + (type || 'success') + ' show';
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModalTrabajador(); closeModalPunto(); closeModalUsuario(); } });
+    </script>
+</body>
+</html>

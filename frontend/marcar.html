@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marcar Asistencia - Manuelita</title>
+    <meta name="theme-color" content="#16a34a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--primary:#16a34a;--primary-dark:#15803d;--primary-light:#dcfce7;--success:#059669;--success-light:#d1fae5;--info:#0284c7;--info-light:#e0f2fe;--warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fee2e2;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827;--radius:16px;--radius-sm:12px}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:'Inter',-apple-system,sans-serif;background:var(--gray-100);color:var(--gray-900);min-height:100vh}
+        .container{max-width:500px;margin:0 auto;padding:20px;padding-bottom:40px}
+        .header{text-align:center;padding:32px 20px;background:#fff;border-radius:var(--radius);margin-bottom:20px;border:1px solid var(--gray-200);position:relative;overflow:hidden}
+        .header::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--primary),var(--primary-dark))}
+        .logo{width:80px;height:80px;border-radius:var(--radius-sm);object-fit:contain;margin:0 auto 16px;display:block;background:#fff;padding:8px;border:1px solid var(--gray-200)}
+        .header h1{font-size:28px;font-weight:800;color:var(--primary)}
+        .header>p{color:var(--gray-500);font-size:14px;margin-top:4px}
+        .datetime{margin-top:16px;padding:12px 20px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;color:var(--gray-500)}
+        .punto-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 16px;background:var(--success-light);color:var(--success);border-radius:20px;font-size:13px;font-weight:600}
+        .punto-badge .dot{width:8px;height:8px;background:var(--success);border-radius:50%;animation:pulse 2s infinite}
+        .location-status{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600}
+        .location-status.checking{background:var(--warning-light);color:var(--warning)}
+        .location-status.valid{background:var(--success-light);color:var(--success)}
+        .location-status.invalid{background:var(--error-light);color:var(--error)}
+        .spinner-small{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}
+        .card{background:#fff;border-radius:var(--radius);border:1px solid var(--gray-200);overflow:hidden;margin-bottom:20px}
+        .card-header{padding:20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:12px}
+        .card-header-icon{width:44px;height:44px;background:var(--primary-light);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:20px}
+        .card-header h2{font-size:18px;font-weight:700}
+        .card-header p{font-size:13px;color:var(--gray-500)}
+        .card-body{padding:24px}
+        .blocked-screen{text-align:center;padding:40px 20px}
+        .blocked-icon{width:100px;height:100px;background:var(--error-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 24px}
+        .blocked-screen h2{font-size:22px;font-weight:700;color:var(--error);margin-bottom:12px}
+        .blocked-screen>p{color:var(--gray-500);font-size:14px;line-height:1.6;margin-bottom:24px}
+        .distance-info{background:var(--gray-50);padding:16px;border-radius:var(--radius-sm);margin-bottom:24px}
+        .distance-info .label{font-size:12px;color:var(--gray-500);margin-bottom:4px}
+        .distance-info .value{font-size:24px;font-weight:800;color:var(--error)}
+        .distance-info .limit{font-size:13px;color:var(--gray-500);margin-top:4px}
+        .form-group{margin-bottom:20px}
+        .form-group label{display:block;font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:8px}
+        .form-group label span{color:var(--error)}
+        .input{width:100%;padding:16px;border:2px solid var(--gray-200);border-radius:var(--radius-sm);font-family:inherit;font-size:16px;color:var(--gray-900);transition:all .2s;background:#fff}
+        .input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-light)}
+        .input::placeholder{color:var(--gray-400)}
+        .btn{width:100%;padding:18px 24px;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+        .btn:disabled{opacity:.6;cursor:not-allowed}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover:not(:disabled){background:var(--primary-dark)}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-outline{background:transparent;color:var(--primary);border:2px solid var(--primary)}
+        .screen{display:none;animation:fadeIn .3s}
+        .screen.active{display:block}
+        .dni-display{text-align:center;padding:32px;background:var(--gray-50);border-radius:var(--radius-sm);margin-bottom:24px}
+        .dni-value{font-size:42px;font-weight:800;color:var(--gray-900);letter-spacing:6px;font-family:monospace}
+        .dni-placeholder{color:var(--gray-300)}
+        .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:320px;margin:0 auto}
+        .numpad-btn{aspect-ratio:1.5;border:none;border-radius:var(--radius-sm);font-family:inherit;font-size:24px;font-weight:700;cursor:pointer;transition:all .15s;background:#fff;color:var(--gray-900);border:1px solid var(--gray-200)}
+        .numpad-btn:hover{background:var(--gray-50)}
+        .numpad-btn:active{transform:scale(.95);background:var(--primary-light)}
+        .numpad-btn.action{background:var(--gray-50);font-size:18px}
+        .numpad-btn.submit{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .numpad-btn.submit:disabled{background:var(--gray-200);border-color:var(--gray-200);color:var(--gray-400)}
+        .success-screen{text-align:center;padding:40px 20px}
+        .success-icon{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 24px;animation:bounceIn .5s}
+        .success-icon.entrada{background:var(--success-light)}
+        .success-icon.salida{background:var(--info-light)}
+        .success-title{font-size:28px;font-weight:800;margin-bottom:8px}
+        .success-title.entrada{color:var(--success)}
+        .success-title.salida{color:var(--info)}
+        .success-time{font-size:48px;font-weight:800;color:var(--gray-900);margin:24px 0;font-family:monospace}
+        .success-details{background:var(--gray-50);border-radius:var(--radius-sm);padding:20px;margin:24px 0;text-align:left}
+        .success-detail{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray-200)}
+        .success-detail:last-child{border-bottom:none}
+        .success-detail label{color:var(--gray-500);font-size:14px}
+        .success-detail span{font-weight:600;color:var(--gray-900)}
+        .countdown{font-size:14px;color:var(--gray-500);margin-top:24px}
+        .register-header{text-align:center;margin-bottom:24px}
+        .register-header .icon{width:64px;height:64px;background:var(--warning-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
+        .register-header h2{font-size:22px;font-weight:700;margin-bottom:8px}
+        .register-header p{color:var(--gray-500);font-size:14px}
+        .dni-readonly{background:var(--gray-50);font-weight:700;font-size:20px;text-align:center;letter-spacing:4px}
+        .loading{display:none;position:fixed;inset:0;background:rgba(255,255,255,.95);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+        .loading.show{display:flex}
+        .spinner{width:50px;height:50px;border:4px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+        .loading-text{font-size:16px;color:var(--gray-500);font-weight:500}
+        .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);padding:16px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;z-index:2000;opacity:0;transition:all .3s;display:flex;align-items:center;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast.success{background:var(--success);color:#fff}
+        .toast.error{background:var(--error);color:#fff}
+        .toast.warning{background:var(--warning);color:#fff}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+        @keyframes bounceIn{0%{transform:scale(0)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        @media(max-width:400px){.container{padding:12px}.header h1{font-size:24px}.dni-value{font-size:32px;letter-spacing:4px}.numpad-btn{font-size:20px}.success-time{font-size:36px}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="https://mrqfeynhafxtfjqmjaxb.supabase.co/storage/v1/object/public/driver-images/drivers/1766979760638-y186di.jpg" alt="Manuelita" class="logo">
+            <h1>MANUELITA</h1>
+            <p>Control de Asistencia</p>
+            <div class="datetime" id="datetime"></div>
+            <div class="punto-badge"><span class="dot"></span><span id="puntoNombre">ENTRADA PRINCIPAL</span></div>
+            <div class="location-status checking" id="locationStatus"><div class="spinner-small"></div><span>Verificando ubicación...</span></div>
+        </header>
+
+        <div class="screen" id="screenBlocked">
+            <div class="card"><div class="card-body blocked-screen">
+                <div class="blocked-icon">📍</div>
+                <h2>Fuera del área permitida</h2>
+                <p>No puedes marcar asistencia porque no te encuentras dentro del área de la empresa.</p>
+                <div class="distance-info">
+                    <div class="label">Tu distancia actual</div>
+                    <div class="value" id="currentDistance">0 metros</div>
+                    <div class="limit">Máximo permitido: <span id="maxDistance">150</span> metros</div>
+                </div>
+                <button class="btn btn-primary" onclick="checkLocation()">🔄 Verificar de nuevo</button>
+            </div></div>
+        </div>
+
+        <div class="screen" id="screenQuickMark">
+            <div class="card"><div class="card-body" style="text-align:center;padding:40px 20px">
+                <div style="width:80px;height:80px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 20px" id="quickMarkIcon">✅</div>
+                <h2 style="font-size:22px;font-weight:700;margin-bottom:4px" id="quickMarkNombre">-</h2>
+                <p style="color:var(--gray-500);font-size:14px;margin-bottom:32px" id="quickMarkCargo">-</p>
+                <button class="btn btn-primary" id="btnQuickMark" onclick="quickMark()" style="font-size:20px;padding:22px 24px">MARCAR ENTRADA ✅</button>
+                <p style="margin-top:20px;font-size:13px;color:var(--gray-400)"><a href="#" onclick="switchUser();return false" style="color:var(--gray-500);text-decoration:underline" id="switchUserLink">¿No eres este trabajador? Ingresa tu DNI</a></p>
+            </div></div>
+        </div>
+
+        <div class="screen" id="screenAlreadyMarked">
+            <div class="card"><div class="card-body" style="text-align:center;padding:40px 20px">
+                <div style="width:100px;height:100px;background:var(--success-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:50px;margin:0 auto 24px">✅</div>
+                <h2 style="font-size:22px;font-weight:700;color:var(--success);margin-bottom:8px">Ya marcaste hoy</h2>
+                <p style="color:var(--gray-500);font-size:14px;margin-bottom:8px">Ya registraste entrada y salida hoy</p>
+                <p style="font-size:18px;font-weight:700;margin-bottom:24px" id="alreadyMarkedNombre">-</p>
+                <p style="font-size:13px;color:var(--gray-400)"><a href="#" onclick="switchUser();return false" style="color:var(--gray-500);text-decoration:underline" id="switchUserLinkAlready">¿No eres este trabajador? Ingresa tu DNI</a></p>
+            </div></div>
+        </div>
+
+        <div class="screen" id="screenDni">
+            <div class="card">
+                <div class="card-header"><div class="card-header-icon">🪪</div><div><h2>Ingresa tu DNI</h2><p>8 dígitos para marcar asistencia</p></div></div>
+                <div class="card-body">
+                    <div class="dni-display"><div class="dni-value" id="dniDisplay"><span class="dni-placeholder">--------</span></div></div>
+                    <div class="numpad">
+                        <button class="numpad-btn" onclick="addDigit('1')">1</button>
+                        <button class="numpad-btn" onclick="addDigit('2')">2</button>
+                        <button class="numpad-btn" onclick="addDigit('3')">3</button>
+                        <button class="numpad-btn" onclick="addDigit('4')">4</button>
+                        <button class="numpad-btn" onclick="addDigit('5')">5</button>
+                        <button class="numpad-btn" onclick="addDigit('6')">6</button>
+                        <button class="numpad-btn" onclick="addDigit('7')">7</button>
+                        <button class="numpad-btn" onclick="addDigit('8')">8</button>
+                        <button class="numpad-btn" onclick="addDigit('9')">9</button>
+                        <button class="numpad-btn action" onclick="clearDni()">⌫</button>
+                        <button class="numpad-btn" onclick="addDigit('0')">0</button>
+                        <button class="numpad-btn submit" id="btnSubmitDni" onclick="submitDni()" disabled>→</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="screenRegister">
+            <div class="card"><div class="card-body">
+                <div class="register-header"><div class="icon">👋</div><h2>¡Bienvenido!</h2><p>Es tu primera vez, completa tus datos</p></div>
+                <form id="registerForm" onsubmit="submitRegister(event)">
+                    <div class="form-group"><label>DNI</label><input type="text" class="input dni-readonly" id="registerDni" readonly></div>
+                    <div class="form-group"><label>Nombres y Apellidos <span>*</span></label><input type="text" class="input" id="registerNombre" placeholder="Ej: Juan Pérez" required></div>
+                    <div class="form-group"><label>Cargo <span>*</span></label><input type="text" class="input" id="registerCargo" placeholder="Ej: Operario" required></div>
+                    <div class="form-group"><label>Área <span>*</span></label><input type="text" class="input" id="registerArea" placeholder="Ej: Cosecha" required></div>
+                    <button type="submit" class="btn btn-success">✅ Registrarme y Marcar</button>
+                    <button type="button" class="btn btn-outline" style="margin-top:12px" onclick="goBack()">← Volver</button>
+                </form>
+            </div></div>
+        </div>
+
+        <div class="screen" id="screenSuccess">
+            <div class="card"><div class="card-body success-screen">
+                <div class="success-icon" id="successIcon">✅</div>
+                <h2 class="success-title" id="successTitle">ENTRADA REGISTRADA</h2>
+                <div class="success-time" id="successTime">08:30:45</div>
+                <div class="success-details">
+                    <div class="success-detail"><label>Empleado</label><span id="successNombre">-</span></div>
+                    <div class="success-detail"><label>DNI</label><span id="successDni">-</span></div>
+                    <div class="success-detail"><label>Cargo</label><span id="successCargo">-</span></div>
+                    <div class="success-detail"><label>Punto</label><span id="successPunto">-</span></div>
+                </div>
+                <button class="btn btn-primary" onclick="resetApp()">✓ Listo</button>
+                <div class="countdown">Volviendo en <span id="countdown">10</span>s...</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div><div class="loading-text" id="loadingText">Cargando...</div></div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+// ===================== API CONFIGURATION =====================
+let API_BASE = '';
+let PUNTOS = {};
+let state = { dni: '', punto: 'ENTRADA_PRINCIPAL', employee: null, countdownTimer: null, countdownValue: 10, locationValid: false, userLocation: null, currentDistance: 0, quickMarkType: null };
+
+async function apiGet(path) {
+    const res = await fetch(API_BASE + path);
+    return res.json();
+}
+
+async function apiPost(path, body) {
+    const res = await fetch(API_BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    return res.json();
+}
+
+async function loadConfig() {
+    try {
+        const result = await apiGet('/config/points');
+        if (result.success && result.data && result.data.length > 0) {
+            PUNTOS = {};
+            result.data.forEach(p => { PUNTOS[p.id] = { lat: p.lat, lng: p.lng, radio: p.radio, nombre: p.nombre }; });
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('Error cargando configuración:', e);
+        return false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    state.punto = urlParams.get('punto') || 'ENTRADA_PRINCIPAL';
+    API_BASE = urlParams.get('api') || (window.location.origin + '/api');
+    document.getElementById('puntoNombre').textContent = state.punto.replace(/_/g, ' ');
+
+    if (!API_BASE) {
+        const statusEl = document.getElementById('locationStatus');
+        statusEl.className = 'location-status invalid';
+        statusEl.innerHTML = '❌ URL de API no configurada';
+        document.querySelector('#screenBlocked .blocked-screen h2').textContent = 'Error de configuración';
+        document.querySelector('#screenBlocked .blocked-screen > p').textContent = 'Este enlace no tiene la URL de la API configurada. Contacta al administrador para que regenere los códigos QR desde el panel.';
+        showScreen('screenBlocked');
+        return;
+    }
+
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    const statusEl = document.getElementById('locationStatus');
+    statusEl.className = 'location-status checking';
+    statusEl.innerHTML = '<div class="spinner-small"></div><span>Cargando configuración...</span>';
+
+    const configLoaded = await loadConfig();
+    if (!configLoaded || Object.keys(PUNTOS).length === 0) {
+        statusEl.className = 'location-status invalid';
+        statusEl.innerHTML = '❌ No hay puntos configurados';
+        document.getElementById('currentDistance').textContent = 'Sin configuración';
+        document.querySelector('#screenBlocked .blocked-screen h2').textContent = 'Sin configuración';
+        document.querySelector('#screenBlocked .blocked-screen > p').textContent = 'No hay puntos de marcación configurados. Contacta al administrador para que configure los puntos en el panel de control.';
+        showScreen('screenBlocked');
+        return;
+    }
+
+    if (!PUNTOS[state.punto]) {
+        statusEl.className = 'location-status invalid';
+        statusEl.innerHTML = '❌ Punto no encontrado';
+        document.getElementById('currentDistance').textContent = 'Punto inválido';
+        document.querySelector('#screenBlocked .blocked-screen h2').textContent = 'Punto no encontrado';
+        document.querySelector('#screenBlocked .blocked-screen > p').textContent = 'El punto "' + state.punto.replace(/_/g, ' ') + '" no existe. Verifica el código QR o contacta al administrador.';
+        showScreen('screenBlocked');
+        return;
+    }
+
+    document.getElementById('puntoNombre').textContent = PUNTOS[state.punto].nombre || state.punto.replace(/_/g, ' ');
+    document.getElementById('maxDistance').textContent = PUNTOS[state.punto].radio;
+    checkLocation();
+    loadEmployeesCache();
+});
+
+async function checkLocation() {
+    const statusEl = document.getElementById('locationStatus');
+    statusEl.className = 'location-status checking';
+    statusEl.innerHTML = '<div class="spinner-small"></div><span>Verificando ubicación...</span>';
+    if (!navigator.geolocation) {
+        statusEl.className = 'location-status invalid';
+        statusEl.innerHTML = '❌ Geolocalización no soportada';
+        showScreen('screenBlocked');
+        return;
+    }
+    try {
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        });
+        state.userLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const ubicacion = PUNTOS[state.punto];
+        if (!ubicacion || !ubicacion.lat || !ubicacion.lng) {
+            statusEl.className = 'location-status invalid';
+            statusEl.innerHTML = '❌ Punto sin coordenadas configuradas';
+            showScreen('screenBlocked');
+            return;
+        }
+        const distance = calculateDistance(state.userLocation.lat, state.userLocation.lng, ubicacion.lat, ubicacion.lng);
+        state.currentDistance = Math.round(distance);
+        if (distance <= ubicacion.radio) {
+            state.locationValid = true;
+            statusEl.className = 'location-status valid';
+            statusEl.innerHTML = '✅ Ubicación verificada';
+            onLocationValid();
+        } else {
+            state.locationValid = false;
+            statusEl.className = 'location-status invalid';
+            statusEl.innerHTML = '❌ Fuera del área';
+            document.getElementById('currentDistance').textContent = state.currentDistance + ' metros';
+            showScreen('screenBlocked');
+        }
+    } catch (error) {
+        statusEl.className = 'location-status invalid';
+        let msg = '❌ Error de ubicación';
+        if (error.code === 1) msg = '❌ Permiso denegado';
+        else if (error.code === 3) msg = '❌ Tiempo agotado';
+        statusEl.innerHTML = msg;
+        document.getElementById('currentDistance').textContent = 'No disponible';
+        showScreen('screenBlocked');
+    }
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function addDigit(d) { if (state.dni.length < 8) { state.dni += d; updateDniDisplay(); if (navigator.vibrate) navigator.vibrate(30); } }
+function clearDni() { if (state.dni.length > 0) { state.dni = state.dni.slice(0, -1); updateDniDisplay(); } }
+function updateDniDisplay() {
+    const display = document.getElementById('dniDisplay');
+    const btn = document.getElementById('btnSubmitDni');
+    if (state.dni.length === 0) display.innerHTML = '<span class="dni-placeholder">--------</span>';
+    else display.innerHTML = state.dni + '<span class="dni-placeholder">' + '\u2013'.repeat(8 - state.dni.length) + '</span>';
+    btn.disabled = state.dni.length !== 8;
+}
+
+async function submitDni() {
+    if (state.dni.length !== 8 || !state.locationValid) return;
+    showLoading(true, 'Buscando...');
+    try {
+        let employees = JSON.parse(localStorage.getItem('employees_cache') || '[]');
+        let employee = employees.find(e => e.DNI === state.dni);
+        if (!employee) {
+            const result = await apiGet('/employees');
+            if (result.success && result.data) {
+                employees = result.data;
+                localStorage.setItem('employees_cache', JSON.stringify(employees));
+                employee = employees.find(e => e.DNI === state.dni);
+            }
+        }
+        showLoading(false);
+        if (employee) { state.employee = employee; await markAttendance(employee); }
+        else { showScreen('screenRegister'); document.getElementById('registerDni').value = state.dni; }
+    } catch (e) { showLoading(false); showToast('Error de conexión', 'error'); }
+}
+
+async function submitRegister(event) {
+    event.preventDefault();
+    if (!state.locationValid) return;
+    const nombre = document.getElementById('registerNombre').value.trim();
+    const cargo = document.getElementById('registerCargo').value.trim();
+    const area = document.getElementById('registerArea').value.trim();
+    if (!nombre || !cargo || !area) { showToast('Completa todos los campos', 'warning'); return; }
+    showLoading(true, 'Registrando...');
+    try {
+        const employee = { DNI: state.dni, NOMBRE: nombre.toUpperCase(), CARGO: cargo.toUpperCase(), AREA: area.toUpperCase() };
+        const result = await apiPost('/employees', employee);
+        if (!result.success) {
+            showLoading(false);
+            showToast(result.error || 'Error al registrar', 'error');
+            return;
+        }
+        let employees = JSON.parse(localStorage.getItem('employees_cache') || '[]');
+        employees.push(employee);
+        localStorage.setItem('employees_cache', JSON.stringify(employees));
+        localStorage.setItem('manuelita_worker_dni', state.dni);
+        state.employee = employee;
+        await markAttendance(employee);
+    } catch (e) { showLoading(false); showToast('Error al registrar', 'error'); }
+}
+
+async function markAttendance(employee) {
+    showLoading(true, 'Marcando...');
+    try {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const time = now.toLocaleTimeString('es-PE');
+        let tipo = 'ENTRADA';
+        try {
+            const result = await apiGet('/attendance?date=' + today);
+            if (result.success && result.data) {
+                const myRecords = result.data.filter(r => r.dni === state.dni);
+                const hasEntrada = myRecords.some(r => r.tipo === 'ENTRADA');
+                const hasSalida = myRecords.some(r => r.tipo === 'SALIDA');
+                if (hasEntrada && hasSalida) {
+                    showLoading(false);
+                    showAlreadyMarked(employee);
+                    return;
+                }
+                if (hasEntrada) tipo = 'SALIDA';
+            }
+        } catch (e) {}
+
+        const record = {
+            dni: employee.DNI,
+            nombre: employee.NOMBRE,
+            cargo: employee.CARGO || '',
+            tipo,
+            date: today,
+            time,
+            punto: state.punto,
+            lat: state.userLocation?.lat,
+            lng: state.userLocation?.lng
+        };
+
+        const result = await apiPost('/attendance', record);
+        showLoading(false);
+
+        if (result.success) {
+            localStorage.setItem('manuelita_worker_dni', state.dni);
+            showSuccess({ ...record, ...(result.data || {}) });
+        } else {
+            if (result.error && result.error.includes('ya registraste')) {
+                showAlreadyMarked(employee);
+            } else {
+                showToast(result.error || 'Error al marcar', 'error');
+            }
+        }
+    } catch (e) { showLoading(false); showToast('Error al marcar', 'error'); }
+}
+
+function showSuccess(record) {
+    const isEntrada = record.tipo === 'ENTRADA';
+    document.getElementById('successIcon').className = 'success-icon ' + (isEntrada ? 'entrada' : 'salida');
+    document.getElementById('successIcon').textContent = isEntrada ? '✅' : '👋';
+    document.getElementById('successTitle').className = 'success-title ' + (isEntrada ? 'entrada' : 'salida');
+    document.getElementById('successTitle').textContent = record.tipo + ' REGISTRADA';
+    document.getElementById('successTime').textContent = record.time;
+    document.getElementById('successNombre').textContent = record.nombre;
+    document.getElementById('successDni').textContent = record.dni;
+    document.getElementById('successCargo').textContent = record.cargo;
+    document.getElementById('successPunto').textContent = state.punto.replace(/_/g, ' ');
+    showScreen('screenSuccess');
+    if (navigator.vibrate) navigator.vibrate(isEntrada ? [200] : [100, 100, 100]);
+    startCountdown();
+}
+
+function startCountdown() {
+    state.countdownValue = 10;
+    document.getElementById('countdown').textContent = state.countdownValue;
+    state.countdownTimer = setInterval(() => {
+        state.countdownValue--;
+        document.getElementById('countdown').textContent = state.countdownValue;
+        if (state.countdownValue <= 0) { clearInterval(state.countdownTimer); resetApp(); }
+    }, 1000);
+}
+
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goBack() { showScreen('screenDni'); }
+function resetApp() { if (state.countdownTimer) clearInterval(state.countdownTimer); state.dni = ''; state.employee = null; state.quickMarkType = null; updateDniDisplay(); document.getElementById('registerForm').reset(); checkLocation(); }
+
+function updateDateTime() { document.getElementById('datetime').textContent = new Date().toLocaleString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+
+async function loadEmployeesCache() {
+    try {
+        const res = await apiGet('/employees');
+        if (res.success && res.data) localStorage.setItem('employees_cache', JSON.stringify(res.data));
+    } catch (e) {}
+}
+
+function showLoading(show, text) { document.getElementById('loadingText').textContent = text || 'Cargando...'; document.getElementById('loading').classList.toggle('show', show); }
+function showToast(msg, type) { const t = document.getElementById('toast'); t.className = 'toast ' + (type || 'success'); t.innerHTML = (type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️') + ' ' + msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+
+function onLocationValid() {
+    const savedDni = localStorage.getItem('manuelita_worker_dni');
+    if (savedDni && savedDni.length === 8) { tryQuickMark(savedDni); }
+    else { showScreen('screenDni'); }
+}
+
+async function tryQuickMark(dni) {
+    showLoading(true, 'Verificando...');
+    try {
+        let employees = JSON.parse(localStorage.getItem('employees_cache') || '[]');
+        let employee = employees.find(e => e.DNI === dni);
+        if (!employee) {
+            const result = await apiGet('/employees');
+            if (result.success && result.data) {
+                employees = result.data;
+                localStorage.setItem('employees_cache', JSON.stringify(employees));
+                employee = employees.find(e => e.DNI === dni);
+            }
+        }
+        if (!employee) {
+            localStorage.removeItem('manuelita_worker_dni');
+            showLoading(false);
+            showScreen('screenDni');
+            return;
+        }
+        state.dni = dni;
+        state.employee = employee;
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        let hasEntrada = false, hasSalida = false;
+        try {
+            const result = await apiGet('/attendance?date=' + today);
+            if (result.success && result.data) {
+                const myRecords = result.data.filter(r => r.dni === dni);
+                hasEntrada = myRecords.some(r => r.tipo === 'ENTRADA');
+                hasSalida = myRecords.some(r => r.tipo === 'SALIDA');
+            }
+        } catch (e) {}
+        showLoading(false);
+        if (hasEntrada && hasSalida) showAlreadyMarked(employee);
+        else if (hasEntrada) showQuickMark(employee, 'SALIDA');
+        else showQuickMark(employee, 'ENTRADA');
+    } catch (e) { showLoading(false); showScreen('screenDni'); }
+}
+
+function showQuickMark(employee, tipo) {
+    state.quickMarkType = tipo;
+    document.getElementById('quickMarkNombre').textContent = employee.NOMBRE;
+    document.getElementById('quickMarkCargo').textContent = employee.CARGO || '';
+    const isEntrada = tipo === 'ENTRADA';
+    document.getElementById('quickMarkIcon').textContent = isEntrada ? '✅' : '👋';
+    document.getElementById('quickMarkIcon').style.background = isEntrada ? 'var(--success-light)' : 'var(--info-light)';
+    const btn = document.getElementById('btnQuickMark');
+    btn.textContent = isEntrada ? 'MARCAR ENTRADA ✅' : 'MARCAR SALIDA 👋';
+    btn.className = isEntrada ? 'btn btn-primary' : 'btn btn-success';
+    btn.style.fontSize = '20px';
+    btn.style.padding = '22px 24px';
+    document.getElementById('switchUserLink').textContent = '¿No eres ' + employee.NOMBRE + '? Ingresa tu DNI';
+    showScreen('screenQuickMark');
+}
+
+function showAlreadyMarked(employee) {
+    document.getElementById('alreadyMarkedNombre').textContent = employee.NOMBRE;
+    document.getElementById('switchUserLinkAlready').textContent = '¿No eres ' + employee.NOMBRE + '? Ingresa tu DNI';
+    showScreen('screenAlreadyMarked');
+}
+
+async function quickMark() {
+    if (!state.employee || !state.locationValid) return;
+    await markAttendance(state.employee);
+}
+
+function switchUser() {
+    localStorage.removeItem('manuelita_worker_dni');
+    state.dni = '';
+    state.employee = null;
+    state.quickMarkType = null;
+    updateDniDisplay();
+    showScreen('screenDni');
+}
+
+document.addEventListener('keydown', e => {
+    if (document.getElementById('screenDni').classList.contains('active')) {
+        if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+        else if (e.key === 'Backspace') clearDni();
+        else if (e.key === 'Enter' && state.dni.length === 8) submitDni();
+    }
+});
+    </script>
+</body>
+</html>

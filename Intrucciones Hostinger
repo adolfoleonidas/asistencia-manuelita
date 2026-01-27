@@ -1,0 +1,153 @@
+# 📋 Sistema de Asistencia - MANUELITA
+## Guía de Instalación en Hostinger
+
+---
+
+## 📁 Archivos incluidos
+
+| Archivo | Descripción |
+|---------|-------------|
+| `admin.html` | Panel de administración (para supervisores) |
+| `marcar.html` | Página de marcación (para trabajadores - QR) |
+| `google-apps-script.js` | Backend para Google Sheets (ya configurado) |
+
+---
+
+## 🚀 PASO 1: Subir archivos a Hostinger
+
+1. Entra a **hPanel** de Hostinger
+2. Ve a **Administrador de archivos**
+3. Navega a `public_html`
+4. Crea una carpeta llamada `asistencia` (o el nombre que prefieras)
+5. Sube los 2 archivos HTML:
+   - `admin.html`
+   - `marcar.html`
+
+Tu estructura quedará así:
+```
+public_html/
+└── asistencia/
+    ├── admin.html
+    └── marcar.html
+```
+
+---
+
+## ⚙️ PASO 2: Configurar el sistema
+
+1. Abre el panel de admin en tu navegador:
+   ```
+   https://TU-DOMINIO.com/asistencia/admin.html
+   ```
+
+2. Ve a **Configuración** (menú lateral)
+
+3. En **"URL de tu sitio web"** escribe la URL base:
+   ```
+   https://TU-DOMINIO.com/asistencia/
+   ```
+   ⚠️ **Importante:** incluir la barra `/` al final
+
+4. En **"Ubicación de la empresa"** ingresa:
+   - **Latitud:** (ej: -14.0678)
+   - **Longitud:** (ej: -75.7286)
+   - **Radio:** 150 (metros permitidos)
+
+   💡 Para obtener coordenadas: Abre Google Maps, haz clic derecho en tu ubicación y copia las coordenadas.
+
+5. Clic en **"Guardar Configuración"**
+
+---
+
+## 📱 PASO 3: Generar códigos QR
+
+1. En el panel admin, ve a **Puntos QR**
+2. El punto "Entrada Principal" ya viene creado
+3. Para agregar más puntos, clic en **"Agregar Punto"**
+4. Para cada punto puedes:
+   - **Copiar URL**: Para compartir el enlace
+   - **Descargar QR**: Para imprimir
+
+---
+
+## 🖨️ PASO 4: Imprimir y colocar QR
+
+1. Descarga el QR de cada punto
+2. Imprime en tamaño grande (mínimo 10x10 cm)
+3. Coloca en un lugar visible en cada entrada
+4. Los trabajadores escanean con su celular
+
+---
+
+## 📲 Cómo funciona para los trabajadores
+
+1. El trabajador escanea el QR con su celular
+2. Se abre la página `marcar.html`
+3. El sistema verifica que esté dentro del área permitida
+4. Ingresa su DNI (8 dígitos)
+5. Si es primera vez → Se registra con sus datos
+6. Marca automáticamente ENTRADA o SALIDA
+
+---
+
+## 🔗 URLs de acceso
+
+| Página | URL |
+|--------|-----|
+| Panel Admin | `https://TU-DOMINIO.com/asistencia/admin.html` |
+| Marcar (QR) | `https://TU-DOMINIO.com/asistencia/marcar.html?punto=ENTRADA_PRINCIPAL` |
+
+---
+
+## 📊 Google Sheets (Backend)
+
+El sistema ya está conectado a Google Sheets. La URL del script es:
+```
+https://script.google.com/macros/s/AKfycbx98G5iQnPhje4JDiijM_PuhYu0Vyzfz911T8lAf_Act8got5pfaatV9pIKcWpimV1-/exec
+```
+
+Si necesitas tu propia hoja de cálculo:
+1. Crea una nueva hoja en Google Sheets
+2. Ve a Extensiones → Apps Script
+3. Pega el código de `google-apps-script.js`
+4. Ejecuta la función `setup()` para crear las hojas
+5. Despliega como aplicación web
+6. Copia la nueva URL y pégala en Configuración
+
+---
+
+## ✅ Checklist final
+
+- [ ] Archivos subidos a Hostinger
+- [ ] URL base configurada
+- [ ] Coordenadas de la empresa configuradas
+- [ ] QR descargado e impreso
+- [ ] Prueba de marcación realizada
+
+---
+
+## 🆘 Solución de problemas
+
+### "Fuera del área permitida"
+- Verifica que las coordenadas sean correctas
+- Aumenta el radio permitido (ej: 200 metros)
+- Asegúrate de tener GPS activado
+
+### "Error de conexión"
+- Verifica conexión a internet
+- El sistema funciona offline y sincroniza después
+
+### Los datos no aparecen
+- Clic en "Sincronizar" en el panel admin
+- Verifica la URL del script de Google
+
+---
+
+## 📞 Soporte
+
+Para cambios o mejoras, contactar al desarrollador.
+
+---
+
+**Versión:** 1.0  
+**Última actualización:** Enero 2025
