@@ -195,6 +195,16 @@
         @media(max-width:480px){.stats-grid{grid-template-columns:1fr}.stat-card{padding:16px}.stat-card-value{font-size:24px}.action-btns{flex-direction:column}.action-btns .btn{width:100%}.filter-group{width:100%}.filter-group input,.filter-group select{flex:1}.login-body{padding:20px}.login-header{padding:30px 20px}.modal-content{margin:10px}.toast{left:16px;right:16px;transform:translateX(0) translateY(100px)}.toast.show{transform:translateX(0) translateY(0)}}
         .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
         .overlay.show{display:block}
+        /* Column config modal */
+        .col-config-list{list-style:none;padding:0;margin:0;max-height:50vh;overflow-y:auto}
+        .col-config-item{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:6px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);cursor:grab;user-select:none;transition:background .15s,box-shadow .15s}
+        .col-config-item:active{cursor:grabbing}
+        .col-config-item.dragging{opacity:.5;background:var(--primary-light);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+        .col-config-item.drag-over{border-color:var(--primary);background:var(--primary-light)}
+        .drag-handle{color:var(--gray-400);flex-shrink:0;display:flex;align-items:center}
+        .col-toggle{margin-left:auto;flex-shrink:0}
+        .col-config-item label{flex:1;font-size:14px;font-weight:500;color:var(--gray-700);cursor:pointer}
+        .btn-columns{gap:6px}
     </style>
 </head>
 <body>
@@ -333,8 +343,9 @@
                         <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar trabajador..." id="searchTrabajador" oninput="filterTrabajadores()"></div>
                         <button class="btn btn-primary" onclick="openModalTrabajador()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="btn-text">Agregar</span></button>
                         <button class="btn btn-secondary" onclick="exportTrabajadores()">📄 <span class="btn-text">Exportar</span></button>
+                        <button class="btn btn-secondary btn-columns" onclick="openColumnConfigModal('trabajadores')"><i data-lucide="columns" style="width:16px;height:16px"></i> <span class="btn-text">Columnas</span></button>
                     </div>
-                    <div class="table-container"><table><thead><tr><th>DNI</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Acciones</th></tr></thead><tbody id="tablaTrabajadores"></tbody></table></div>
+                    <div class="table-container"><table><thead id="theadTrabajadores"></thead><tbody id="tablaTrabajadores"></tbody></table></div>
                 </div>
                 <!-- Asistencias -->
                 <div class="page" id="page-asistencias">
@@ -349,9 +360,10 @@
                         <div style="display:flex;gap:8px">
                             <button class="btn btn-secondary" onclick="exportAsistenciasExcel()"><i data-lucide="file-spreadsheet" style="width:16px;height:16px"></i> <span class="btn-text">Excel</span></button>
                             <button class="btn btn-primary" onclick="exportAsistencias()"><i data-lucide="file-text" style="width:16px;height:16px"></i> <span class="btn-text">PDF</span></button>
+                            <button class="btn btn-secondary btn-columns" onclick="openColumnConfigModal('asistencias')"><i data-lucide="columns" style="width:16px;height:16px"></i> <span class="btn-text">Columnas</span></button>
                         </div>
                     </div>
-                    <div class="table-container"><table><thead><tr><th>Trabajador</th><th>DNI</th><th>Tipo</th><th>Fecha</th><th>Hora</th><th>Punto</th><th>Ubicación</th></tr></thead><tbody id="tablaAsistencias"></tbody></table></div>
+                    <div class="table-container"><table><thead id="theadAsistencias"></thead><tbody id="tablaAsistencias"></tbody></table></div>
                 </div>
                 <!-- Puntos QR -->
                 <div class="page" id="page-puntos">
@@ -366,8 +378,9 @@
                     <div class="table-controls">
                         <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar usuario..." id="searchUsuario" oninput="filterUsuarios()"></div>
                         <button class="btn btn-primary" id="btnAgregarAdmin" onclick="openModalUsuario()" style="display:none"><i data-lucide="user-plus" style="width:16px;height:16px"></i> Agregar Admin</button>
+                        <button class="btn btn-secondary btn-columns" onclick="openColumnConfigModal('usuarios')"><i data-lucide="columns" style="width:16px;height:16px"></i> <span class="btn-text">Columnas</span></button>
                     </div>
-                    <div class="table-container"><table><thead><tr><th>Usuario</th><th>Email</th><th>Nombre</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
+                    <div class="table-container"><table><thead id="theadUsuarios"></thead><tbody id="tablaUsuarios"></tbody></table></div>
                 </div>
                 <!-- Configuración -->
                 <div class="page" id="page-configuracion">
@@ -469,6 +482,23 @@
         </div>
     </div>
 
+    <!-- Modal Column Config -->
+    <div class="modal" id="modalColumnConfig">
+        <div class="modal-content">
+            <div class="modal-header"><h2 id="modalColumnConfigTitle">Configurar Columnas</h2><button class="modal-close" onclick="closeColumnConfigModal()">✕</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="columnConfigTableKey">
+                <p style="font-size:13px;color:var(--gray-500);margin-bottom:12px">Arrastra para reordenar. Desmarca para ocultar.</p>
+                <ul class="col-config-list" id="colConfigList"></ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="resetColumnPrefsFromModal()">Restaurar</button>
+                <button class="btn btn-secondary" onclick="closeColumnConfigModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveColumnConfigFromModal()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
     <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 
@@ -481,8 +511,312 @@ let state = {
     asistencias: [],
     puntos: [],
     usuarios: [],
-    currentUser: null
+    currentUser: null,
+    columnPrefs: null
 };
+
+// =====================================================
+// COLUMN DEFINITIONS & PREFERENCES
+// =====================================================
+const COLUMN_DEFS = {
+    trabajadores: [
+        { id: 'dni', label: 'DNI', defaultVisible: true,
+          renderHtml: t => '<strong>' + escapeHtml(t.dni) + '</strong>',
+          renderPdf: t => t.dni,
+          renderExcel: t => t.dni },
+        { id: 'nombre', label: 'Nombre', defaultVisible: true,
+          renderHtml: t => escapeHtml(t.nombre),
+          renderPdf: t => t.nombre,
+          renderExcel: t => t.nombre },
+        { id: 'cargo', label: 'Cargo', defaultVisible: true,
+          renderHtml: t => escapeHtml(t.cargo),
+          renderPdf: t => t.cargo,
+          renderExcel: t => t.cargo },
+        { id: 'area', label: 'Área', defaultVisible: true,
+          renderHtml: t => escapeHtml(t.area),
+          renderPdf: t => t.area,
+          renderExcel: t => t.area }
+    ],
+    asistencias: [
+        { id: 'nombre', label: 'Trabajador', defaultVisible: true,
+          renderHtml: a => '<strong>' + escapeHtml(a.nombre) + '</strong>',
+          renderPdf: a => a.nombre,
+          renderExcel: a => a.nombre },
+        { id: 'dni', label: 'DNI', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.dni),
+          renderPdf: a => a.dni,
+          renderExcel: a => a.dni },
+        { id: 'cargo', label: 'Cargo', defaultVisible: false,
+          renderHtml: a => escapeHtml(a.cargo || '-'),
+          renderPdf: a => a.cargo || '-',
+          renderExcel: a => a.cargo || '-' },
+        { id: 'tipo', label: 'Tipo', defaultVisible: true,
+          renderHtml: a => '<span class="badge ' + a.tipo.toLowerCase() + '">' + escapeHtml(a.tipo) + '</span>',
+          renderPdf: a => a.tipo,
+          renderExcel: a => a.tipo },
+        { id: 'fecha', label: 'Fecha', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.fecha),
+          renderPdf: a => a.fecha,
+          renderExcel: a => a.fecha },
+        { id: 'hora', label: 'Hora', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.hora),
+          renderPdf: a => a.hora,
+          renderExcel: a => a.hora },
+        { id: 'punto', label: 'Punto', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.punto || '-'),
+          renderPdf: a => a.punto || '-',
+          renderExcel: a => a.punto || '-' },
+        { id: 'ubicacion', label: 'Ubicación', defaultVisible: true,
+          renderHtml: a => a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-',
+          renderPdf: a => a.lat ? a.lat + ',' + a.lng : '-',
+          renderExcel: a => a.lat ? a.lat + ',' + a.lng : '-' },
+        { id: 'latitud', label: 'Latitud', defaultVisible: false,
+          renderHtml: a => a.lat || '-',
+          renderPdf: a => a.lat || '-',
+          renderExcel: a => a.lat || '-' },
+        { id: 'longitud', label: 'Longitud', defaultVisible: false,
+          renderHtml: a => a.lng || '-',
+          renderPdf: a => a.lng || '-',
+          renderExcel: a => a.lng || '-' }
+    ],
+    usuarios: [
+        { id: 'username', label: 'Usuario', defaultVisible: true,
+          renderHtml: (u, extra) => '<strong>' + escapeHtml(u.username) + '</strong>' + (extra.isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : ''),
+          renderPdf: u => u.username,
+          renderExcel: u => u.username },
+        { id: 'email', label: 'Email', defaultVisible: true,
+          renderHtml: u => '<span style="font-size:13px;color:var(--gray-500)">' + escapeHtml(u.email || '-') + '</span>',
+          renderPdf: u => u.email || '-',
+          renderExcel: u => u.email || '-' },
+        { id: 'nombre', label: 'Nombre', defaultVisible: true,
+          renderHtml: u => escapeHtml(u.nombre),
+          renderPdf: u => u.nombre,
+          renderExcel: u => u.nombre },
+        { id: 'rol', label: 'Rol', defaultVisible: true,
+          renderHtml: u => { const rb = u.rol === 'super_admin' ? 'super_admin' : 'admin'; const rt = u.rol === 'super_admin' ? 'Super Admin' : 'Admin'; return '<span class="badge ' + rb + '">' + rt + '</span>'; },
+          renderPdf: u => u.rol === 'super_admin' ? 'Super Admin' : 'Admin',
+          renderExcel: u => u.rol === 'super_admin' ? 'Super Admin' : 'Admin' },
+        { id: 'fecha_creacion', label: 'Creado', defaultVisible: true,
+          renderHtml: u => u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-',
+          renderPdf: u => u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-',
+          renderExcel: u => u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-' }
+    ]
+};
+
+function getDefaultColumnPrefs() {
+    const prefs = {};
+    for (const [tableKey, cols] of Object.entries(COLUMN_DEFS)) {
+        prefs[tableKey] = {
+            columns: cols.map(c => c.id),
+            hidden: cols.filter(c => !c.defaultVisible).map(c => c.id)
+        };
+    }
+    return prefs;
+}
+
+async function loadColumnPrefs() {
+    if (!state.currentUser) { state.columnPrefs = getDefaultColumnPrefs(); return; }
+    try {
+        const { data } = await db.from('system_config').select('value').eq('key', 'col_prefs_' + state.currentUser.id).maybeSingle();
+        if (data && data.value) {
+            const saved = JSON.parse(data.value);
+            const defaults = getDefaultColumnPrefs();
+            // Reconcile: add any new columns from COLUMN_DEFS that aren't in saved prefs
+            for (const [tableKey, cols] of Object.entries(COLUMN_DEFS)) {
+                if (!saved[tableKey]) { saved[tableKey] = defaults[tableKey]; continue; }
+                const allIds = cols.map(c => c.id);
+                const savedIds = saved[tableKey].columns || [];
+                // Add missing columns at the end
+                allIds.forEach(id => { if (!savedIds.includes(id)) { saved[tableKey].columns.push(id); if (!cols.find(c => c.id === id).defaultVisible) saved[tableKey].hidden.push(id); } });
+                // Remove columns that no longer exist in COLUMN_DEFS
+                saved[tableKey].columns = saved[tableKey].columns.filter(id => allIds.includes(id));
+                saved[tableKey].hidden = (saved[tableKey].hidden || []).filter(id => allIds.includes(id));
+            }
+            state.columnPrefs = saved;
+        } else {
+            state.columnPrefs = getDefaultColumnPrefs();
+        }
+    } catch (e) {
+        state.columnPrefs = getDefaultColumnPrefs();
+    }
+}
+
+async function saveColumnPrefs() {
+    if (!state.currentUser || !state.columnPrefs) return;
+    try {
+        await db.from('system_config').upsert({ key: 'col_prefs_' + state.currentUser.id, value: JSON.stringify(state.columnPrefs) });
+    } catch (e) {
+        console.error('Error saving column prefs:', e);
+    }
+}
+
+function getVisibleColumns(tableKey) {
+    if (!state.columnPrefs || !state.columnPrefs[tableKey]) return COLUMN_DEFS[tableKey].filter(c => c.defaultVisible);
+    const prefs = state.columnPrefs[tableKey];
+    const hidden = prefs.hidden || [];
+    return prefs.columns.filter(id => !hidden.includes(id)).map(id => COLUMN_DEFS[tableKey].find(c => c.id === id)).filter(Boolean);
+}
+
+function getOrderedColumns(tableKey) {
+    if (!state.columnPrefs || !state.columnPrefs[tableKey]) return COLUMN_DEFS[tableKey].map(c => ({ ...c, visible: c.defaultVisible }));
+    const prefs = state.columnPrefs[tableKey];
+    const hidden = prefs.hidden || [];
+    return prefs.columns.map(id => {
+        const def = COLUMN_DEFS[tableKey].find(c => c.id === id);
+        return def ? { ...def, visible: !hidden.includes(id) } : null;
+    }).filter(Boolean);
+}
+
+function renderTableHead(tableKey, hasActions) {
+    const cols = getVisibleColumns(tableKey);
+    let html = '<tr>';
+    cols.forEach(c => { html += '<th>' + escapeHtml(c.label) + '</th>'; });
+    if (hasActions) html += '<th>Acciones</th>';
+    html += '</tr>';
+    return html;
+}
+
+function renderTableRow(tableKey, item, actionsHtml, extra) {
+    const cols = getVisibleColumns(tableKey);
+    let html = '<tr>';
+    cols.forEach(c => { html += '<td>' + c.renderHtml(item, extra || {}) + '</td>'; });
+    if (actionsHtml !== undefined) html += '<td>' + actionsHtml + '</td>';
+    html += '</tr>';
+    return html;
+}
+
+function renderAllTableHeads() {
+    const thTrab = document.getElementById('theadTrabajadores');
+    const thAsis = document.getElementById('theadAsistencias');
+    const thUsu = document.getElementById('theadUsuarios');
+    if (thTrab) thTrab.innerHTML = renderTableHead('trabajadores', true);
+    if (thAsis) thAsis.innerHTML = renderTableHead('asistencias', false);
+    if (thUsu) thUsu.innerHTML = renderTableHead('usuarios', true);
+}
+
+function openColumnConfigModal(tableKey) {
+    const modal = document.getElementById('modalColumnConfig');
+    const titleMap = { trabajadores: 'Trabajadores', asistencias: 'Asistencias', usuarios: 'Usuarios' };
+    document.getElementById('modalColumnConfigTitle').textContent = 'Columnas: ' + (titleMap[tableKey] || tableKey);
+    document.getElementById('columnConfigTableKey').value = tableKey;
+    const list = document.getElementById('colConfigList');
+    const cols = getOrderedColumns(tableKey);
+    list.innerHTML = cols.map(c => '<li class="col-config-item" draggable="true" data-col-id="' + c.id + '">' +
+        '<span class="drag-handle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>' +
+        '<label>' + escapeHtml(c.label) + '</label>' +
+        '<input type="checkbox" class="col-toggle" ' + (c.visible ? 'checked' : '') + '>' +
+        '</li>').join('');
+    modal.classList.add('show');
+    initDragAndDrop(list);
+}
+
+function closeColumnConfigModal() {
+    document.getElementById('modalColumnConfig').classList.remove('show');
+}
+
+function saveColumnConfigFromModal() {
+    const tableKey = document.getElementById('columnConfigTableKey').value;
+    const list = document.getElementById('colConfigList');
+    const items = list.querySelectorAll('.col-config-item');
+    const columns = [];
+    const hidden = [];
+    items.forEach(item => {
+        const id = item.getAttribute('data-col-id');
+        columns.push(id);
+        if (!item.querySelector('.col-toggle').checked) hidden.push(id);
+    });
+    if (!state.columnPrefs) state.columnPrefs = getDefaultColumnPrefs();
+    state.columnPrefs[tableKey] = { columns, hidden };
+    saveColumnPrefs();
+    renderAllTableHeads();
+    updateTablaTrabajadores();
+    updateTablaAsistencias();
+    updateTablaUsuarios();
+    closeColumnConfigModal();
+    showToast('Columnas actualizadas', 'success');
+}
+
+function resetColumnPrefsFromModal() {
+    const tableKey = document.getElementById('columnConfigTableKey').value;
+    const defaults = getDefaultColumnPrefs();
+    if (!state.columnPrefs) state.columnPrefs = defaults;
+    state.columnPrefs[tableKey] = defaults[tableKey];
+    // Re-open modal with default values
+    openColumnConfigModal(tableKey);
+}
+
+function initDragAndDrop(container) {
+    let draggedItem = null;
+    const items = container.querySelectorAll('.col-config-item');
+    items.forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+            container.querySelectorAll('.col-config-item').forEach(i => i.classList.remove('drag-over'));
+            draggedItem = null;
+        });
+        item.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this !== draggedItem) this.classList.add('drag-over');
+        });
+        item.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+        item.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if (draggedItem && this !== draggedItem) {
+                const allItems = [...container.querySelectorAll('.col-config-item')];
+                const dragIdx = allItems.indexOf(draggedItem);
+                const dropIdx = allItems.indexOf(this);
+                if (dragIdx < dropIdx) this.after(draggedItem);
+                else this.before(draggedItem);
+            }
+        });
+        // Touch support
+        let touchStartY = 0;
+        let touchClone = null;
+        item.addEventListener('touchstart', function(e) {
+            draggedItem = this;
+            touchStartY = e.touches[0].clientY;
+            this.classList.add('dragging');
+        }, { passive: true });
+        item.addEventListener('touchmove', function(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            container.querySelectorAll('.col-config-item').forEach(i => i.classList.remove('drag-over'));
+            if (target) {
+                const dropTarget = target.closest('.col-config-item');
+                if (dropTarget && dropTarget !== draggedItem) dropTarget.classList.add('drag-over');
+            }
+        }, { passive: false });
+        item.addEventListener('touchend', function(e) {
+            if (!draggedItem) return;
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target) {
+                const dropTarget = target.closest('.col-config-item');
+                if (dropTarget && dropTarget !== draggedItem) {
+                    const allItems = [...container.querySelectorAll('.col-config-item')];
+                    const dragIdx = allItems.indexOf(draggedItem);
+                    const dropIdx = allItems.indexOf(dropTarget);
+                    if (dragIdx < dropIdx) dropTarget.after(draggedItem);
+                    else dropTarget.before(draggedItem);
+                }
+            }
+            container.querySelectorAll('.col-config-item').forEach(i => i.classList.remove('drag-over'));
+            draggedItem.classList.remove('dragging');
+            draggedItem = null;
+        });
+    });
+}
 
 // =====================================================
 // AUTENTICACIÓN
@@ -496,7 +830,7 @@ async function initAuth() {
     const { data: { session } } = await db.auth.getSession();
     if (session) {
         await loadUserProfile(session.user);
-        showApp();
+        await showApp();
     } else {
         showLogin();
     }
@@ -539,7 +873,7 @@ function showLogin() {
     document.getElementById('mainApp').classList.remove('show');
 }
 
-function showApp() {
+async function showApp() {
     document.getElementById('loginContainer').style.display = 'none';
     document.getElementById('mainApp').classList.add('show');
     updateUserUI();
@@ -551,6 +885,8 @@ function showApp() {
     document.getElementById('filterFechaFin').valueAsDate = today;
     document.getElementById('configSupabaseUrl').value = SUPABASE_URL;
     document.getElementById('configSupabaseKey').value = SUPABASE_KEY;
+    await loadColumnPrefs();
+    renderAllTableHeads();
     syncData();
     checkConnection();
     loadGpsConfig();
@@ -615,7 +951,7 @@ async function handleLogin(event) {
         } else {
             await loadUserProfile(data.user);
             errorEl.classList.remove('show');
-            showApp();
+            await showApp();
             showToast('¡Bienvenido!', 'success');
         }
     } catch (error) {
@@ -630,6 +966,7 @@ async function handleLogin(event) {
 async function handleLogout() {
     await db.auth.signOut();
     state.currentUser = null;
+    state.columnPrefs = null;
     showLogin();
     document.getElementById('loginEmail').value = '';
     document.getElementById('loginPassword').value = '';
@@ -736,8 +1073,13 @@ function updateTablaTrabajadores() {
     const search = document.getElementById('searchTrabajador').value.toLowerCase();
     let filtered = state.trabajadores;
     if (search) filtered = filtered.filter(t => t.dni.includes(search) || t.nombre.toLowerCase().includes(search) || t.cargo.toLowerCase().includes(search) || t.area.toLowerCase().includes(search));
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + escapeHtml(t.dni) + '</strong></td><td>' + escapeHtml(t.nombre) + '</td><td>' + escapeHtml(t.cargo) + '</td><td>' + escapeHtml(t.area) + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick="editTrabajador(\'' + escapeHtml(t.dni) + '\')">Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + escapeHtml(t.dni) + '\')">Eliminar</button></div></td></tr>').join('');
+    const visCols = getVisibleColumns('trabajadores');
+    const colspan = visCols.length + 1; // +1 for actions
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
+    tbody.innerHTML = filtered.map(t => {
+        const actions = '<div class="action-btns"><button class="btn btn-sm btn-secondary" onclick="editTrabajador(\'' + escapeHtml(t.dni) + '\')">Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + escapeHtml(t.dni) + '\')">Eliminar</button></div>';
+        return renderTableRow('trabajadores', t, actions);
+    }).join('');
 }
 
 function filterTrabajadores() { updateTablaTrabajadores(); }
@@ -837,8 +1179,10 @@ function getFilteredAsistencias() {
 function updateTablaAsistencias() {
     const tbody = document.getElementById('tablaAsistencias');
     const filtered = getFilteredAsistencias();
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + escapeHtml(a.nombre) + '</strong></td><td>' + escapeHtml(a.dni) + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + escapeHtml(a.tipo) + '</span></td><td>' + escapeHtml(a.fecha) + '</td><td>' + escapeHtml(a.hora) + '</td><td>' + escapeHtml(a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-') + '</td></tr>').join('');
+    const visCols = getVisibleColumns('asistencias');
+    const colspan = visCols.length;
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
+    tbody.innerHTML = filtered.map(a => renderTableRow('asistencias', a)).join('');
     lucide.createIcons();
 }
 function filterAsistencias() { updateTablaAsistencias(); }
@@ -955,15 +1299,14 @@ function updateTablaUsuarios() {
     const search = document.getElementById('searchUsuario').value.toLowerCase();
     let filtered = state.usuarios;
     if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nombre.toLowerCase().includes(search) || (u.email && u.email.toLowerCase().includes(search)));
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><h3>No hay usuarios</h3><p>Agrega un administrador</p></td></tr>'; return; }
+    const visCols = getVisibleColumns('usuarios');
+    const colspan = visCols.length + 1; // +1 for actions
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay usuarios</h3><p>Agrega un administrador</p></td></tr>'; return; }
     const isSA = isSuperAdmin();
     tbody.innerHTML = filtered.map(u => {
         const isCurrentUser = state.currentUser && u.id === state.currentUser.id;
-        const rolBadge = u.rol === 'super_admin' ? 'super_admin' : 'admin';
-        const rolText = u.rol === 'super_admin' ? 'Super Admin' : 'Admin';
-        const createdDate = u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-';
         const actions = isSA && !isCurrentUser ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>' : '-';
-        return '<tr><td><strong>' + escapeHtml(u.username) + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td style="font-size:13px;color:var(--gray-500)">' + escapeHtml(u.email || '-') + '</td><td>' + escapeHtml(u.nombre) + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td>' + actions + '</td></tr>';
+        return renderTableRow('usuarios', u, actions, { isCurrentUser });
     }).join('');
     lucide.createIcons();
 }
@@ -1125,13 +1468,14 @@ window.addEventListener('offline', checkConnection);
 // EXPORTAR
 // =====================================================
 function exportTrabajadores() {
+    const cols = getVisibleColumns('trabajadores');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFontSize(20); doc.setTextColor(22, 163, 74);
     doc.text('Manuelita - Lista de Trabajadores', 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
     doc.text('Generado: ' + new Date().toLocaleString() + ' | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
-    doc.autoTable({ startY: 40, head: [['DNI', 'Nombre', 'Cargo', 'Área']], body: state.trabajadores.map(t => [t.dni, t.nombre, t.cargo, t.area]), headStyles: { fillColor: [22, 163, 74] } });
+    doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: state.trabajadores.map(t => cols.map(c => c.renderPdf(t))), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('trabajadores_manuelita.pdf');
     showToast('PDF generado', 'success');
 }
@@ -1139,6 +1483,7 @@ function exportTrabajadores() {
 function exportAsistencias() {
     const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
+    const cols = getVisibleColumns('asistencias');
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const fechaFin = document.getElementById('filterFechaFin').value;
     const rangoFecha = fechaInicio === fechaFin ? fechaInicio : fechaInicio + ' a ' + fechaFin;
@@ -1148,7 +1493,7 @@ function exportAsistencias() {
     doc.text('Manuelita - Reporte de Asistencia', 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
     doc.text('Fecha: ' + rangoFecha + ' | Total: ' + filtered.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
-    doc.autoTable({ startY: 40, head: [['Trabajador', 'DNI', 'Tipo', 'Fecha', 'Hora', 'Punto']], body: filtered.map(a => [a.nombre, a.dni, a.tipo, a.fecha, a.hora, a.punto || '-']), headStyles: { fillColor: [22, 163, 74] } });
+    doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: filtered.map(a => cols.map(c => c.renderPdf(a))), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('asistencia_' + fechaInicio + '.pdf');
     showToast('PDF generado', 'success');
 }
@@ -1156,26 +1501,17 @@ function exportAsistencias() {
 function exportAsistenciasExcel() {
     const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
+    const cols = getVisibleColumns('asistencias');
     const fechaInicio = document.getElementById('filterFechaInicio').value;
-    const data = filtered.map(a => ({
-        'Trabajador': a.nombre,
-        'DNI': a.dni,
-        'Cargo': a.cargo || '-',
-        'Tipo': a.tipo,
-        'Fecha': a.fecha,
-        'Hora': a.hora,
-        'Punto': a.punto || '-',
-        'Latitud': a.lat || '-',
-        'Longitud': a.lng || '-'
-    }));
+    const data = filtered.map(a => {
+        const row = {};
+        cols.forEach(c => { row[c.label] = c.renderExcel(a); });
+        return row;
+    });
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Asistencias');
-    // Ajustar ancho de columnas
-    ws['!cols'] = [
-        { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 10 },
-        { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 12 }
-    ];
+    ws['!cols'] = cols.map(() => ({ wch: 18 }));
     XLSX.writeFile(wb, 'asistencias_' + fechaInicio + '.xlsx');
     showToast('Excel generado', 'success');
 }
@@ -1354,7 +1690,7 @@ function showToast(message, type) {
     lucide.createIcons();
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModalTrabajador(); closeModalPunto(); closeModalUsuario(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModalTrabajador(); closeModalPunto(); closeModalUsuario(); closeColumnConfigModal(); } });
 
 // =====================================================
 // INICIALIZACIÓN
