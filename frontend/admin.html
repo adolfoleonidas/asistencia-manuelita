@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Panel de Control - Manuelita</title>
     <meta name="theme-color" content="#16a34a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root{--primary:#16a34a;--primary-dark:#15803d;--primary-light:#dcfce7;--success:#059669;--success-light:#d1fae5;--warning:#d97706;--warning-light:#fef3c7;--error:#dc2626;--error-light:#fee2e2;--info:#0284c7;--info-light:#e0f2fe;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--gray-900:#111827;--sidebar-w:260px;--header-h:70px;--radius:12px;--radius-sm:8px}
@@ -151,6 +155,12 @@
         .config-input{width:280px;padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);font-family:inherit;font-size:14px}
         .config-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
         .config-input.full{width:100%}
+        .toggle{position:relative;display:inline-block;width:50px;height:28px}
+        .toggle input{opacity:0;width:0;height:0}
+        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--gray-300);border-radius:28px;transition:.3s}
+        .toggle-slider:before{position:absolute;content:"";height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+        .toggle input:checked+.toggle-slider{background:var(--primary)}
+        .toggle input:checked+.toggle-slider:before{transform:translateX(22px)}
         .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
         .modal.show{display:flex}
         .modal-content{background:#fff;border-radius:var(--radius);width:100%;max-width:500px;max-height:90vh;overflow:hidden;animation:modalIn .3s;display:flex;flex-direction:column}
@@ -178,12 +188,6 @@
         .alert{padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:14px}
         .alert-info{background:var(--info-light);color:var(--info);border:1px solid var(--info)}
         .alert-warning{background:var(--warning-light);color:#92400e;border:1px solid var(--warning)}
-        .toggle-switch{position:relative;display:inline-block;width:50px;height:26px}
-        .toggle-switch input{opacity:0;width:0;height:0}
-        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--gray-300);border-radius:26px;transition:.3s}
-        .toggle-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
-        .toggle-switch input:checked+.toggle-slider{background:var(--primary)}
-        .toggle-switch input:checked+.toggle-slider:before{transform:translateX(24px)}
         @media(max-width:1200px){.stats-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}}
         @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:flex}.stats-grid{grid-template-columns:1fr 1fr}.header-datetime{display:none}.table-controls{flex-direction:column;align-items:stretch}.search-box{min-width:100%}.config-input{width:100%}.content{padding:16px}.header{padding:0 16px}.btn{padding:10px 14px;font-size:13px}.puntos-grid{grid-template-columns:1fr}}
         @media(max-width:480px){.stats-grid{grid-template-columns:1fr}.stat-card{padding:16px}.stat-card-value{font-size:24px}.action-btns{flex-direction:column}.action-btns .btn{width:100%}.filter-group{width:100%}.filter-group input,.filter-group select{flex:1}.login-body{padding:20px}.login-header{padding:30px 20px}.modal-content{margin:10px}.toast{left:16px;right:16px;transform:translateX(0) translateY(100px)}.toast.show{transform:translateX(0) translateY(0)}}
@@ -204,8 +208,8 @@
                 <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
                 <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label>Usuario</label>
-                        <input type="text" id="loginUsername" placeholder="Ingresa tu usuario" required autocomplete="username">
+                        <label>Usuario o Email</label>
+                        <input type="text" id="loginEmail" placeholder="admin o admin@empresa.com" required autocomplete="username">
                     </div>
                     <div class="form-group">
                         <label>Contraseña</label>
@@ -269,6 +273,7 @@
                     <div class="user-details">
                         <div class="user-name" id="userName">Admin</div>
                         <div class="user-role" id="userRole">Administrador</div>
+                        <div style="font-size:11px;color:var(--gray-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="userEmail"></div>
                     </div>
                 </div>
                 <div class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Conectado</span></div>
@@ -293,14 +298,31 @@
                 <!-- Dashboard -->
                 <div class="page active" id="page-dashboard">
                     <div class="stats-grid">
-                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon green">👷</div></div><div class="stat-card-value" id="statPresentes">0</div><div class="stat-card-label">Presentes ahora</div></div>
-                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon blue">✅</div></div><div class="stat-card-value" id="statEntradas">0</div><div class="stat-card-label">Entradas hoy</div></div>
-                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon yellow">🚪</div></div><div class="stat-card-value" id="statSalidas">0</div><div class="stat-card-label">Salidas hoy</div></div>
-                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon red">📊</div></div><div class="stat-card-value" id="statTotal">0</div><div class="stat-card-label">Total registros</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon green"><i data-lucide="users" style="width:24px;height:24px;color:var(--primary)"></i></div></div><div class="stat-card-value" id="statPresentes">0</div><div class="stat-card-label">Presentes ahora</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon blue"><i data-lucide="log-in" style="width:24px;height:24px;color:var(--info)"></i></div></div><div class="stat-card-value" id="statEntradas">0</div><div class="stat-card-label">Entradas hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon yellow"><i data-lucide="log-out" style="width:24px;height:24px;color:var(--warning)"></i></div></div><div class="stat-card-value" id="statSalidas">0</div><div class="stat-card-label">Salidas hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon red"><i data-lucide="bar-chart-3" style="width:24px;height:24px;color:var(--error)"></i></div></div><div class="stat-card-value" id="statTotal">0</div><div class="stat-card-label">Total registros</div></div>
                     </div>
                     <div class="dashboard-grid">
-                        <div class="card"><div class="card-header"><h2>📋 Actividad Reciente</h2><button class="btn btn-sm btn-secondary" onclick="showPage('asistencias',document.querySelector('[onclick*=asistencias]'))">Ver todo</button></div><div class="card-body no-padding"><ul class="activity-list" id="activityList"></ul></div></div>
-                        <div class="card"><div class="card-header"><h2>📈 Resumen</h2></div><div class="card-body"><div class="quick-stats"><div class="quick-stat"><span class="quick-stat-label">Trabajadores</span><span class="quick-stat-value" id="quickTrabajadores">0</span></div><div class="quick-stat"><span class="quick-stat-label">Asistencia hoy</span><span class="quick-stat-value" id="quickAsistencia">0%</span></div><div class="quick-stat"><span class="quick-stat-label">Puntos activos</span><span class="quick-stat-value" id="quickPuntos">0</span></div></div></div></div>
+                        <div class="card">
+                            <div class="card-header"><h2><i data-lucide="bar-chart-2" style="width:18px;height:18px"></i> Asistencia Semanal</h2></div>
+                            <div class="card-body"><canvas id="chartAsistencia" height="200"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h2><i data-lucide="pie-chart" style="width:18px;height:18px"></i> Resumen</h2></div>
+                            <div class="card-body">
+                                <div class="quick-stats">
+                                    <div class="quick-stat"><span class="quick-stat-label">Trabajadores</span><span class="quick-stat-value" id="quickTrabajadores">0</span></div>
+                                    <div class="quick-stat"><span class="quick-stat-label">Asistencia hoy</span><span class="quick-stat-value" id="quickAsistencia">0%</span></div>
+                                    <div class="quick-stat"><span class="quick-stat-label">Puntos activos</span><span class="quick-stat-value" id="quickPuntos">0</span></div>
+                                </div>
+                                <canvas id="chartTipos" height="150" style="margin-top:20px"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:24px">
+                        <div class="card-header"><h2><i data-lucide="activity" style="width:18px;height:18px"></i> Actividad Reciente</h2><button class="btn btn-sm btn-secondary" onclick="showPage('asistencias',document.querySelector('[onclick*=asistencias]'))">Ver todo</button></div>
+                        <div class="card-body no-padding"><ul class="activity-list" id="activityList"></ul></div>
                     </div>
                 </div>
                 <!-- Trabajadores -->
@@ -314,10 +336,18 @@
                 </div>
                 <!-- Asistencias -->
                 <div class="page" id="page-asistencias">
-                    <div class="table-controls">
+                    <div class="table-controls" style="flex-wrap:wrap;gap:12px">
                         <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar..." id="searchAsistencia" oninput="filterAsistencias()"></div>
-                        <div class="filter-group"><input type="date" id="filterFecha" onchange="filterAsistencias()"><select id="filterTipo" onchange="filterAsistencias()"><option value="">Todos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select></div>
-                        <button class="btn btn-primary" onclick="exportAsistencias()">📄 <span class="btn-text">Exportar PDF</span></button>
+                        <div class="filter-group">
+                            <input type="date" id="filterFechaInicio" onchange="filterAsistencias()" title="Fecha inicio">
+                            <span style="color:var(--gray-400)">a</span>
+                            <input type="date" id="filterFechaFin" onchange="filterAsistencias()" title="Fecha fin">
+                            <select id="filterTipo" onchange="filterAsistencias()"><option value="">Todos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-secondary" onclick="exportAsistenciasExcel()"><i data-lucide="file-spreadsheet" style="width:16px;height:16px"></i> <span class="btn-text">Excel</span></button>
+                            <button class="btn btn-primary" onclick="exportAsistencias()"><i data-lucide="file-text" style="width:16px;height:16px"></i> <span class="btn-text">PDF</span></button>
+                        </div>
                     </div>
                     <div class="table-container"><table><thead><tr><th>Trabajador</th><th>DNI</th><th>Tipo</th><th>Fecha</th><th>Hora</th><th>Punto</th><th>Ubicación</th></tr></thead><tbody id="tablaAsistencias"></tbody></table></div>
                 </div>
@@ -331,42 +361,42 @@
                 </div>
                 <!-- Usuarios Admin -->
                 <div class="page" id="page-usuarios">
-                    <div class="alert alert-info">
-                        👥 <strong>Gestión de Usuarios</strong> - Aquí puedes crear y administrar los usuarios que tendrán acceso al panel de control. Solo los <strong>Super Admin</strong> pueden gestionar usuarios.
-                    </div>
                     <div class="table-controls">
                         <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar usuario..." id="searchUsuario" oninput="filterUsuarios()"></div>
-                        <button class="btn btn-primary" onclick="openModalUsuario()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="btn-text">Agregar Usuario</span></button>
+                        <button class="btn btn-primary" id="btnAgregarAdmin" onclick="openModalUsuario()" style="display:none"><i data-lucide="user-plus" style="width:16px;height:16px"></i> Agregar Admin</button>
                     </div>
-                    <div class="table-container"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
+                    <div class="table-container"><table><thead><tr><th>Usuario</th><th>Email</th><th>Nombre</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr></thead><tbody id="tablaUsuarios"></tbody></table></div>
                 </div>
                 <!-- Configuración -->
                 <div class="page" id="page-configuracion">
                     <div class="config-section">
-                        <div class="config-section-header"><h3>🌐 URL de tu sitio web</h3><p>La dirección donde se accede al sistema</p></div>
+                        <div class="config-section-header"><h3><i data-lucide="key" style="width:20px;height:20px;display:inline;vertical-align:middle"></i> Configuración de Supabase</h3><p>Credenciales para conectar con tu proyecto</p></div>
                         <div class="config-section-body">
                             <div class="form-group">
-                                <label>URL Base (sin el nombre del archivo)</label>
-                                <input type="text" class="config-input full" id="configBaseUrl" placeholder="https://tudominio.com/asistencia/">
-                                <small>Ejemplo: https://miempresa.com/asistencia/ o https://miempresa.com/</small>
+                                <label>Supabase URL</label>
+                                <input type="text" class="config-input full" id="configSupabaseUrl" placeholder="https://xxxx.supabase.co">
                             </div>
-                            <button class="btn btn-primary" onclick="saveLocalConfig()">💾 Guardar Configuración</button>
+                            <div class="form-group">
+                                <label>Supabase Anon Key</label>
+                                <input type="text" class="config-input full" id="configSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                            </div>
+                            <button class="btn btn-primary" onclick="saveSupabaseConfig()"><i data-lucide="save" style="width:16px;height:16px"></i> Guardar y Reconectar</button>
                         </div>
                     </div>
                     <div class="config-section">
-                        <div class="config-section-header"><h3>🔗 Google Sheets (Opcional)</h3><p>Sincronización de datos con Google Sheets</p></div>
+                        <div class="config-section-header"><h3><i data-lucide="map-pin" style="width:20px;height:20px;display:inline;vertical-align:middle"></i> Verificación GPS</h3><p>Controla si se requiere verificación de ubicación para marcar asistencia</p></div>
                         <div class="config-section-body">
                             <div class="config-row">
-                                <div class="config-label">Sincronizar con Google Sheets<span>Los datos se copiarán automáticamente a tu hoja de cálculo</span></div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="configSheetsSync" onchange="toggleSheetsSync()">
+                                <div class="config-label">Activar verificación GPS<span>Si está desactivado, los empleados pueden marcar desde cualquier lugar</span></div>
+                                <label class="toggle">
+                                    <input type="checkbox" id="configGpsEnabled" onchange="saveGpsConfig()">
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
                         </div>
                     </div>
                     <div class="config-section">
-                        <div class="config-section-header"><h3>💾 Datos</h3><p>Gestiona los datos almacenados</p></div>
+                        <div class="config-section-header"><h3><i data-lucide="database" style="width:20px;height:20px;display:inline;vertical-align:middle"></i> Datos</h3><p>Gestiona los datos almacenados</p></div>
                         <div class="config-section-body">
                             <div class="config-row">
                                 <div class="config-label">Exportar Backup<span>Descarga todos los datos en JSON</span></div>
@@ -407,7 +437,7 @@
                     <div class="form-group"><label>Latitud</label><input type="text" id="inputPuntoLat" placeholder="-14.0678"></div>
                     <div class="form-group"><label>Longitud</label><input type="text" id="inputPuntoLng" placeholder="-75.7286"></div>
                     <div class="form-group"><label>Radio en metros</label><input type="number" id="inputPuntoRadio" value="150"></div>
-                    <button type="button" class="btn btn-secondary" onclick="usarMiUbicacionPunto()" style="width:100%">📍 Usar mi ubicación actual</button>
+                    <button type="button" class="btn btn-secondary" onclick="usarMiUbicacionPunto()" style="width:100%"><i data-lucide="locate" style="width:16px;height:16px"></i> Usar mi ubicación actual</button>
                 </form>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalPunto()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formPunto').requestSubmit()">Crear Punto</button></div>
@@ -417,35 +447,23 @@
     <!-- Modal Usuario -->
     <div class="modal" id="modalUsuario">
         <div class="modal-content">
-            <div class="modal-header"><h2 id="modalUsuarioTitle">Agregar Usuario</h2><button class="modal-close" onclick="closeModalUsuario()">✕</button></div>
+            <div class="modal-header"><h2>Agregar Administrador</h2><button class="modal-close" onclick="closeModalUsuario()">×</button></div>
             <div class="modal-body">
                 <form id="formUsuario" onsubmit="saveUsuario(event)">
-                    <input type="hidden" id="editingUsuarioId">
-                    <div class="form-group">
-                        <label>Nombre de Usuario *</label>
-                        <input type="text" id="inputUsuario" placeholder="Ej: admin2" required autocomplete="off">
-                        <small>Sin espacios, solo letras y números</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Nombre Completo *</label>
-                        <input type="text" id="inputUsuarioNombre" placeholder="Ej: María García" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña *</label>
-                        <input type="password" id="inputUsuarioPassword" placeholder="Mínimo 4 caracteres" required autocomplete="new-password">
-                        <small id="passwordHint">Crea una contraseña segura</small>
-                    </div>
+                    <div class="form-group"><label>Email *</label><input type="email" id="inputUserEmail" placeholder="correo@ejemplo.com" required></div>
+                    <div class="form-group"><label>Contraseña *</label><input type="password" id="inputUserPassword" placeholder="Mínimo 6 caracteres" minlength="6" required></div>
+                    <div class="form-group"><label>Nombre completo *</label><input type="text" id="inputUserNombre" placeholder="Juan Pérez" required></div>
+                    <div class="form-group"><label>Usuario *</label><input type="text" id="inputUserUsername" placeholder="juanperez" required><small>Sin espacios, en minúsculas</small></div>
                     <div class="form-group">
                         <label>Rol *</label>
-                        <select id="inputUsuarioRol" required>
-                            <option value="admin">Administrador</option>
-                            <option value="super_admin">Super Administrador</option>
+                        <select id="inputUserRol" required>
+                            <option value="admin">Admin (acceso básico)</option>
+                            <option value="super_admin">Super Admin (acceso total)</option>
                         </select>
-                        <small>Los Super Admin pueden gestionar usuarios y configuración avanzada</small>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalUsuario()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formUsuario').requestSubmit()">Guardar</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalUsuario()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formUsuario').requestSubmit()">Crear Usuario</button></div>
         </div>
     </div>
 
@@ -453,68 +471,103 @@
     <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 
     <script>
-// ===================== API CONFIGURATION =====================
-const API_BASE = window.location.origin + '/api';
+// =====================================================
+// CONFIGURACIÓN DE SUPABASE
+// =====================================================
+// Credenciales hardcodeadas
+const SUPABASE_URL = 'https://ecruxlrjzatkbrpgdcaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnV4bHJqemF0a2JycGdkY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDg0NzYsImV4cCI6MjA4NTE4NDQ3Nn0.X59-l7JQyFRTosmQmet8tLkviXyQCov5mJY6dftyrf0';
+let db = null;
 
-const API = {
-    _token: null,
-    setToken(token) { this._token = token; localStorage.setItem('manuelita_token', token); },
-    getToken() { return this._token || localStorage.getItem('manuelita_token'); },
-    clearToken() { this._token = null; localStorage.removeItem('manuelita_token'); },
-    _headers() {
-        const h = { 'Content-Type': 'application/json' };
-        const t = this.getToken();
-        if (t) h['Authorization'] = 'Bearer ' + t;
-        return h;
-    },
-    async get(path) {
-        const res = await fetch(API_BASE + path, { headers: this._headers() });
-        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
-        return res.json();
-    },
-    async post(path, body) {
-        const res = await fetch(API_BASE + path, { method: 'POST', headers: this._headers(), body: JSON.stringify(body) });
-        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
-        return res.json();
-    },
-    async put(path, body) {
-        const res = await fetch(API_BASE + path, { method: 'PUT', headers: this._headers(), body: JSON.stringify(body) });
-        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
-        return res.json();
-    },
-    async del(path) {
-        const res = await fetch(API_BASE + path, { method: 'DELETE', headers: this._headers() });
-        if (res.status === 401) { handleLogout(); throw new Error('Sesión expirada'); }
-        return res.json();
+function initSupabase() {
+    if (SUPABASE_URL && SUPABASE_KEY) {
+        try {
+            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            return true;
+        } catch(e) {
+            console.error('Error inicializando Supabase:', e);
+            return false;
+        }
     }
-};
+    return false;
+}
 
+// =====================================================
+// ESTADO DE LA APLICACIÓN
+// =====================================================
 let state = {
     trabajadores: [],
     asistencias: [],
     puntos: [],
     usuarios: [],
-    config: {},
     currentUser: null
 };
 
-// ===================== AUTENTICACIÓN =====================
+// =====================================================
+// AUTENTICACIÓN
+// =====================================================
 async function initAuth() {
-    const session = localStorage.getItem('manuelita_session');
-    const token = API.getToken();
-    if (session && token) {
-        try {
-            const sessionData = JSON.parse(session);
-            const loginTime = new Date(sessionData.loginAt).getTime();
-            const hoursElapsed = (Date.now() - loginTime) / (1000 * 60 * 60);
-            if (hoursElapsed < 24 && sessionData.user) {
-                state.currentUser = sessionData.user;
-                showApp();
-                return;
-            }
-        } catch (e) { console.log('Sesión inválida'); }
+    if (!initSupabase()) {
+        showConfigPrompt();
+        return;
     }
-    showLogin();
+
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+        await loadUserProfile(session.user);
+        showApp();
+    } else {
+        showLogin();
+    }
+
+    db.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+            showLogin();
+        }
+    });
+}
+
+function showConfigPrompt() {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('mainApp').classList.remove('show');
+
+    const config = prompt('Ingresa tu SUPABASE_URL (ej: https://xxxx.supabase.co):');
+    if (config) {
+        SUPABASE_URL = config.trim();
+        const key = prompt('Ingresa tu SUPABASE_ANON_KEY:');
+        if (key) {
+            SUPABASE_KEY = key.trim();
+            localStorage.setItem('supabase_url', SUPABASE_URL);
+            localStorage.setItem('supabase_key', SUPABASE_KEY);
+            location.reload();
+        }
+    }
+}
+
+async function loadUserProfile(user) {
+    const { data: profile } = await db
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    if (profile) {
+        state.currentUser = {
+            id: user.id,
+            email: user.email,
+            username: profile.username,
+            nombre: profile.nombre,
+            rol: profile.rol
+        };
+    } else {
+        state.currentUser = {
+            id: user.id,
+            email: user.email,
+            username: user.email.split('@')[0],
+            nombre: user.email.split('@')[0],
+            rol: 'admin'
+        };
+    }
 }
 
 function showLogin() {
@@ -526,17 +579,23 @@ function showApp() {
     document.getElementById('loginContainer').style.display = 'none';
     document.getElementById('mainApp').classList.add('show');
     updateUserUI();
-    loadConfig();
     updateDateTime();
     setInterval(updateDateTime, 1000);
-    document.getElementById('filterFecha').valueAsDate = new Date();
+    // Filtros de fecha: por defecto hoy
+    const today = new Date();
+    document.getElementById('filterFechaInicio').valueAsDate = today;
+    document.getElementById('filterFechaFin').valueAsDate = today;
+    document.getElementById('configSupabaseUrl').value = SUPABASE_URL;
+    document.getElementById('configSupabaseKey').value = SUPABASE_KEY;
     syncData();
     checkConnection();
+    loadGpsConfig();
+    initCharts();
 }
 
 async function handleLogin(event) {
     event.preventDefault();
-    const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+    let emailOrUser = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const errorEl = document.getElementById('loginError');
     const loginBtn = document.getElementById('loginBtn');
@@ -545,22 +604,55 @@ async function handleLogin(event) {
     loginBtn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px"></div> Validando...';
 
     try {
-        const result = await API.post('/auth/login', { username, password });
+        let email = emailOrUser;
 
-        if (result.success && result.data) {
-            API.setToken(result.data.token);
-            state.currentUser = result.data.user;
-            localStorage.setItem('manuelita_session', JSON.stringify({
-                user: result.data.user,
-                loginAt: new Date().toISOString()
-            }));
-            errorEl.classList.remove('show');
-            showApp();
-            showToast('✅ ¡Bienvenido, ' + result.data.user.nombre + '!', 'success');
-        } else {
-            errorEl.textContent = result.error || 'Usuario o contraseña incorrectos';
+        // Si no es un email, buscar el email por username
+        if (!emailOrUser.includes('@')) {
+            const { data: profile } = await db
+                .from('user_profiles')
+                .select('id')
+                .eq('username', emailOrUser.toLowerCase())
+                .eq('activo', true)
+                .maybeSingle();
+
+            if (profile) {
+                // Obtener email de auth.users via función o buscar en otra forma
+                // Como no podemos acceder a auth.users directamente, guardamos el email en user_profiles
+                const { data: profileWithEmail } = await db
+                    .from('user_profiles')
+                    .select('email')
+                    .eq('username', emailOrUser.toLowerCase())
+                    .maybeSingle();
+
+                if (profileWithEmail && profileWithEmail.email) {
+                    email = profileWithEmail.email;
+                } else {
+                    errorEl.textContent = 'Usuario no encontrado';
+                    errorEl.classList.add('show');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<span>Iniciar Sesión</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+                    return;
+                }
+            } else {
+                errorEl.textContent = 'Usuario no encontrado';
+                errorEl.classList.add('show');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Iniciar Sesión</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+                return;
+            }
+        }
+
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            errorEl.textContent = 'Usuario o contraseña incorrectos';
             errorEl.classList.add('show');
             document.getElementById('loginPassword').value = '';
+        } else {
+            await loadUserProfile(data.user);
+            errorEl.classList.remove('show');
+            showApp();
+            showToast('¡Bienvenido!', 'success');
         }
     } catch (error) {
         errorEl.textContent = 'Error de conexión. Verifica tu internet.';
@@ -571,13 +663,11 @@ async function handleLogin(event) {
     }
 }
 
-function handleLogout() {
+async function handleLogout() {
+    await db.auth.signOut();
     state.currentUser = null;
-    state.usuarios = [];
-    API.clearToken();
-    localStorage.removeItem('manuelita_session');
     showLogin();
-    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginEmail').value = '';
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').classList.remove('show');
 }
@@ -590,182 +680,45 @@ function updateUserUI() {
     const isSA = user.rol === 'super_admin';
     document.getElementById('userRole').textContent = isSA ? 'Super Admin' : 'Administrador';
     document.getElementById('userRole').className = 'user-role' + (isSA ? ' super' : '');
-    document.getElementById('navUsuarios').classList.toggle('hidden', !isSA);
-    document.getElementById('navConfiguracion').classList.toggle('hidden', !isSA);
-    document.getElementById('btnAgregarPunto').style.display = isSA ? 'inline-flex' : 'none';
+    // Mostrar botón agregar admin solo para super_admin
+    const btnAgregarAdmin = document.getElementById('btnAgregarAdmin');
+    if (btnAgregarAdmin) btnAgregarAdmin.style.display = isSA ? 'flex' : 'none';
+    // Ocultar Usuarios Admin para admin (solo super_admin)
+    const navUsuarios = document.getElementById('navUsuarios');
+    if (navUsuarios) navUsuarios.style.display = isSA ? 'flex' : 'none';
+    // Ocultar Configuración para admin (solo super_admin)
+    const navConfig = document.getElementById('navConfiguracion');
+    if (navConfig) navConfig.style.display = isSA ? 'flex' : 'none';
+    // Mostrar email en sidebar
+    document.getElementById('userEmail').textContent = user.email || '';
 }
 
 function isSuperAdmin() {
     return state.currentUser && state.currentUser.rol === 'super_admin';
 }
 
-// ===================== GESTIÓN DE USUARIOS =====================
-async function loadUsers() {
-    try {
-        const result = await API.get('/users');
-        if (result.success && result.data) state.usuarios = result.data;
-    } catch (e) { console.log('Error cargando usuarios:', e); }
-}
+// =====================================================
+// SUPABASE CONFIG
+// =====================================================
+function saveSupabaseConfig() {
+    const url = document.getElementById('configSupabaseUrl').value.trim();
+    const key = document.getElementById('configSupabaseKey').value.trim();
 
-async function updateTablaUsuarios() {
-    const tbody = document.getElementById('tablaUsuarios');
-    const search = document.getElementById('searchUsuario').value.toLowerCase();
-    if (state.usuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--gray-400)"><div class="spinner" style="margin:0 auto 12px"></div>Cargando usuarios...</td></tr>';
-        await loadUsers();
-    }
-    let filtered = state.usuarios;
-    if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nombre.toLowerCase().includes(search));
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay usuarios</h3><p>Agrega usuarios para que accedan al sistema</p></td></tr>';
+    if (!url || !key) {
+        showToast('Completa ambos campos', 'error');
         return;
     }
-    tbody.innerHTML = filtered.map(u => {
-        const isCurrentUser = state.currentUser && u.id === state.currentUser.id;
-        const canDelete = !isCurrentUser && isSuperAdmin();
-        const rolBadge = u.rol === 'super_admin' ? 'super_admin' : 'admin';
-        const rolText = u.rol === 'super_admin' ? 'Super Admin' : 'Admin';
-        const createdDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-PE') : '-';
-        return '<tr><td><strong>' + u.username + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td>' + u.nombre + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editUsuario(' + JSON.stringify(u).replace(/'/g, "\\'") + ')\'>Editar</button>' + (canDelete ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')">Eliminar</button>' : '') + '</div></td></tr>';
-    }).join('');
+
+    localStorage.setItem('supabase_url', url);
+    localStorage.setItem('supabase_key', key);
+    showToast('Configuración guardada. Recargando...', 'success');
+    setTimeout(() => location.reload(), 1000);
 }
 
-function filterUsuarios() { updateTablaUsuarios(); }
-function openModalUsuario(u) {
-    if (!isSuperAdmin()) { showToast('❌ Solo los Super Admin pueden gestionar usuarios', 'error'); return; }
-    const form = document.getElementById('formUsuario');
-    form.reset();
-    document.getElementById('editingUsuarioId').value = '';
-    document.getElementById('inputUsuarioPassword').required = true;
-    document.getElementById('passwordHint').textContent = 'Crea una contraseña segura (mínimo 4 caracteres)';
-    if (u) {
-        document.getElementById('modalUsuarioTitle').textContent = 'Editar Usuario';
-        document.getElementById('editingUsuarioId').value = u.id;
-        document.getElementById('inputUsuario').value = u.username;
-        document.getElementById('inputUsuarioNombre').value = u.nombre;
-        document.getElementById('inputUsuarioRol').value = u.rol;
-        document.getElementById('inputUsuarioPassword').required = false;
-        document.getElementById('passwordHint').textContent = 'Deja vacío para mantener la contraseña actual';
-    } else {
-        document.getElementById('modalUsuarioTitle').textContent = 'Agregar Usuario';
-    }
-    document.getElementById('modalUsuario').classList.add('show');
-}
-function closeModalUsuario() { document.getElementById('modalUsuario').classList.remove('show'); }
-function editUsuario(u) { openModalUsuario(u); }
-
-async function saveUsuario(e) {
-    e.preventDefault();
-    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
-    const editingId = document.getElementById('editingUsuarioId').value;
-    const username = document.getElementById('inputUsuario').value.trim().toLowerCase().replace(/\s+/g, '');
-    const nombre = document.getElementById('inputUsuarioNombre').value.trim();
-    const password = document.getElementById('inputUsuarioPassword').value;
-    const rol = document.getElementById('inputUsuarioRol').value;
-    if (username.length < 3) { showToast('❌ El usuario debe tener al menos 3 caracteres', 'error'); return; }
-    if (!editingId && password.length < 4) { showToast('❌ La contraseña debe tener al menos 4 caracteres', 'error'); return; }
-    showLoading(true);
-    try {
-        const userData = { username, nombre, rol };
-        if (password) userData.password = password;
-        let result;
-        if (editingId) {
-            result = await API.put('/users/' + editingId, userData);
-        } else {
-            userData.password = password;
-            result = await API.post('/users', userData);
-        }
-        if (result.success) {
-            if (editingId && state.currentUser && state.currentUser.id === editingId) {
-                state.currentUser.username = username;
-                state.currentUser.nombre = nombre;
-                state.currentUser.rol = rol;
-                localStorage.setItem('manuelita_session', JSON.stringify({ user: state.currentUser, loginAt: new Date().toISOString() }));
-                updateUserUI();
-            }
-            closeModalUsuario();
-            showToast('✅ Usuario ' + (editingId ? 'actualizado' : 'creado'), 'success');
-            await loadUsers();
-            updateTablaUsuarios();
-        } else {
-            showToast('❌ ' + (result.error || 'Error al guardar'), 'error');
-        }
-    } catch (error) {
-        showToast('⚠️ Error al guardar. Intenta de nuevo.', 'error');
-    } finally { showLoading(false); }
-}
-
-async function deleteUsuario(id) {
-    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
-    if (state.currentUser && state.currentUser.id === id) { showToast('❌ No puedes eliminar tu propio usuario', 'error'); return; }
-    if (!confirm('¿Eliminar este usuario? Ya no podrá acceder al sistema.')) return;
-    showLoading(true);
-    try {
-        const result = await API.del('/users/' + id);
-        if (result.success) {
-            state.usuarios = state.usuarios.filter(u => u.id !== id);
-            updateTablaUsuarios();
-            showToast('✅ Usuario eliminado', 'success');
-        } else { showToast('❌ ' + (result.error || 'Error al eliminar'), 'error'); }
-    } catch (error) { showToast('⚠️ Error al eliminar', 'error'); }
-    finally { showLoading(false); }
-}
-
-// ===================== INICIALIZACIÓN =====================
-document.addEventListener('DOMContentLoaded', () => { initAuth(); });
-
-// ===================== CONFIG =====================
-function loadConfig() {
-    const saved = localStorage.getItem('manuelita_config');
-    state.config = saved ? JSON.parse(saved) : { BASE_URL: '' };
-    document.getElementById('configBaseUrl').value = state.config.BASE_URL || '';
-    if (isSuperAdmin()) loadSheetsToggle();
-}
-
-async function loadSheetsToggle() {
-    try {
-        const result = await API.get('/config/settings');
-        if (result.success && result.data) {
-            document.getElementById('configSheetsSync').checked = result.data.sheets_sync_enabled === 'true';
-        }
-    } catch (e) {}
-}
-
-function saveLocalConfig() {
-    state.config.BASE_URL = document.getElementById('configBaseUrl').value.trim();
-    if (state.config.BASE_URL && !state.config.BASE_URL.endsWith('/')) state.config.BASE_URL += '/';
-    localStorage.setItem('manuelita_config', JSON.stringify(state.config));
-    showToast('✅ Configuración guardada', 'success');
-    updatePuntosGrid();
-}
-
-async function toggleSheetsSync() {
-    try {
-        const enabled = document.getElementById('configSheetsSync').checked;
-        await API.put('/config/settings', { sheets_sync_enabled: enabled ? 'true' : 'false' });
-        showToast('✅ Sincronización ' + (enabled ? 'activada' : 'desactivada'), 'success');
-    } catch (e) { showToast('❌ Error al cambiar configuración', 'error'); }
-}
-
-function getMarcarUrl() {
-    if (state.config.BASE_URL) return state.config.BASE_URL + 'marcar.html';
-    return window.location.href.replace(/admin\.html.*$/, 'marcar.html').replace(/\/admin\b.*$/, '/marcar.html');
-}
-
-function getApiBaseUrl() {
-    if (state.config.BASE_URL) {
-        const url = new URL(state.config.BASE_URL);
-        return url.origin + '/api';
-    }
-    return API_BASE;
-}
-
-// ===================== NAVEGACIÓN =====================
+// =====================================================
+// NAVEGACIÓN
+// =====================================================
 function showPage(pageName, element) {
-    if ((pageName === 'usuarios' || pageName === 'configuracion') && !isSuperAdmin()) {
-        showToast('❌ No tienes permisos para acceder a esta sección', 'error');
-        return;
-    }
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     if (element) element.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -783,10 +736,12 @@ function toggleSidebar() {
     document.getElementById('overlay').classList.toggle('show');
 }
 
-// ===================== DASHBOARD =====================
+// =====================================================
+// DASHBOARD
+// =====================================================
 function updateDashboard() {
     const today = new Date().toISOString().split('T')[0];
-    const todayRecords = state.asistencias.filter(a => a.date === today);
+    const todayRecords = state.asistencias.filter(a => a.fecha === today);
     const entradas = todayRecords.filter(a => a.tipo === 'ENTRADA');
     const salidas = todayRecords.filter(a => a.tipo === 'SALIDA');
     const presentes = new Set();
@@ -806,17 +761,19 @@ function updateDashboard() {
 function updateActivityList(records) {
     const list = document.getElementById('activityList');
     if (records.length === 0) { list.innerHTML = '<li class="activity-item"><div style="text-align:center;width:100%;padding:30px;color:var(--gray-400)">No hay actividad hoy</div></li>'; return; }
-    list.innerHTML = records.map(r => '<li class="activity-item"><div class="activity-icon ' + r.tipo.toLowerCase() + '">' + (r.tipo === 'ENTRADA' ? '✅' : '🚪') + '</div><div class="activity-content"><div class="activity-name">' + r.nombre + '</div><div class="activity-detail">' + r.tipo + ' • ' + (r.punto || 'Principal') + '</div></div><div class="activity-time">' + r.time + '</div></li>').join('');
+    list.innerHTML = records.map(r => '<li class="activity-item"><div class="activity-icon ' + r.tipo.toLowerCase() + '">' + (r.tipo === 'ENTRADA' ? '✅' : '🚪') + '</div><div class="activity-content"><div class="activity-name">' + r.nombre + '</div><div class="activity-detail">' + r.tipo + ' • ' + (r.punto || 'Principal') + '</div></div><div class="activity-time">' + r.hora + '</div></li>').join('');
 }
 
-// ===================== TRABAJADORES =====================
+// =====================================================
+// TRABAJADORES
+// =====================================================
 function updateTablaTrabajadores() {
     const tbody = document.getElementById('tablaTrabajadores');
     const search = document.getElementById('searchTrabajador').value.toLowerCase();
     let filtered = state.trabajadores;
-    if (search) filtered = filtered.filter(t => t.DNI.includes(search) || t.NOMBRE.toLowerCase().includes(search) || t.CARGO.toLowerCase().includes(search) || t.AREA.toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(t => t.dni.includes(search) || t.nombre.toLowerCase().includes(search) || t.cargo.toLowerCase().includes(search) || t.area.toLowerCase().includes(search));
     if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + t.DNI + '</strong></td><td>' + t.NOMBRE + '</td><td>' + t.CARGO + '</td><td>' + t.AREA + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editTrabajador(' + JSON.stringify(t).replace(/'/g, "\\'") + ')\'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + t.DNI + '\')">Eliminar</button></div></td></tr>').join('');
+    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + t.dni + '</strong></td><td>' + t.nombre + '</td><td>' + t.cargo + '</td><td>' + t.area + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editTrabajador(' + JSON.stringify(t).replace(/'/g, "\\'") + ')\'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + t.dni + '\')">Eliminar</button></div></td></tr>').join('');
 }
 
 function filterTrabajadores() { updateTablaTrabajadores(); }
@@ -827,12 +784,12 @@ function openModalTrabajador(t) {
     document.getElementById('inputDni').disabled = false;
     if (t) {
         document.getElementById('modalTrabajadorTitle').textContent = 'Editar Trabajador';
-        document.getElementById('editingDni').value = t.DNI;
-        document.getElementById('inputDni').value = t.DNI;
+        document.getElementById('editingDni').value = t.dni;
+        document.getElementById('inputDni').value = t.dni;
         document.getElementById('inputDni').disabled = true;
-        document.getElementById('inputNombre').value = t.NOMBRE;
-        document.getElementById('inputCargo').value = t.CARGO;
-        document.getElementById('inputArea').value = t.AREA;
+        document.getElementById('inputNombre').value = t.nombre;
+        document.getElementById('inputCargo').value = t.cargo;
+        document.getElementById('inputArea').value = t.area;
     } else {
         document.getElementById('modalTrabajadorTitle').textContent = 'Agregar Trabajador';
     }
@@ -843,79 +800,101 @@ function editTrabajador(t) { openModalTrabajador(t); }
 
 async function saveTrabajador(e) {
     e.preventDefault();
-    const t = {
-        DNI: document.getElementById('inputDni').value.trim(),
-        NOMBRE: document.getElementById('inputNombre').value.trim().toUpperCase(),
-        CARGO: document.getElementById('inputCargo').value.trim().toUpperCase(),
-        AREA: document.getElementById('inputArea').value.trim().toUpperCase()
-    };
+    const dni = document.getElementById('inputDni').value.trim();
+    const nombre = document.getElementById('inputNombre').value.trim().toUpperCase();
+    const cargo = document.getElementById('inputCargo').value.trim().toUpperCase();
+    const area = document.getElementById('inputArea').value.trim().toUpperCase();
     const editingDni = document.getElementById('editingDni').value;
+
     showLoading(true);
     try {
-        let result;
         if (editingDni) {
-            result = await API.put('/employees/' + editingDni, { NOMBRE: t.NOMBRE, CARGO: t.CARGO, AREA: t.AREA });
+            const { error } = await db.from('empleados').update({ nombre, cargo, area }).eq('dni', editingDni);
+            if (error) throw error;
         } else {
-            result = await API.post('/employees', t);
+            const { error } = await db.from('empleados').insert({ dni, nombre, cargo, area });
+            if (error) {
+                if (error.code === '23505') {
+                    showToast('El DNI ya existe', 'error');
+                    showLoading(false);
+                    return;
+                }
+                throw error;
+            }
         }
-        if (result.success) {
-            closeModalTrabajador();
-            showToast('✅ Trabajador ' + (editingDni ? 'actualizado' : 'agregado'), 'success');
-            await loadEmployees();
-            updateAll();
-        } else {
-            showToast('❌ ' + (result.error || 'Error al guardar'), 'error');
-        }
-    } catch (error) { showToast('⚠️ Error al guardar', 'error'); }
-    finally { showLoading(false); }
+        closeModalTrabajador();
+        showToast('Trabajador ' + (editingDni ? 'actualizado' : 'agregado'), 'success');
+        await loadEmployees();
+        updateAll();
+    } catch (error) {
+        showToast('Error al guardar', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
 async function deleteTrabajador(dni) {
     if (!confirm('¿Eliminar este trabajador?')) return;
     showLoading(true);
     try {
-        const result = await API.del('/employees/' + dni);
-        if (result.success) {
-            showToast('✅ Trabajador eliminado', 'success');
-            await loadEmployees();
-            updateAll();
-        } else { showToast('❌ ' + (result.error || 'Error al eliminar'), 'error'); }
-    } catch (error) { showToast('⚠️ Error al eliminar', 'error'); }
-    finally { showLoading(false); }
+        const { error } = await db.from('empleados').delete().eq('dni', dni);
+        if (error) throw error;
+        showToast('Trabajador eliminado', 'success');
+        await loadEmployees();
+        updateAll();
+    } catch (error) {
+        showToast('Error al eliminar', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
-// ===================== ASISTENCIAS =====================
-function updateTablaAsistencias() {
-    const tbody = document.getElementById('tablaAsistencias');
+// =====================================================
+// ASISTENCIAS
+// =====================================================
+function getFilteredAsistencias() {
     const search = document.getElementById('searchAsistencia').value.toLowerCase();
-    const fecha = document.getElementById('filterFecha').value;
+    const fechaInicio = document.getElementById('filterFechaInicio').value;
+    const fechaFin = document.getElementById('filterFechaFin').value;
     const tipo = document.getElementById('filterTipo').value;
     let filtered = state.asistencias;
-    if (fecha) filtered = filtered.filter(a => a.date === fecha);
+
+    if (fechaInicio && fechaFin) {
+        filtered = filtered.filter(a => a.fecha >= fechaInicio && a.fecha <= fechaFin);
+    } else if (fechaInicio) {
+        filtered = filtered.filter(a => a.fecha === fechaInicio);
+    }
     if (tipo) filtered = filtered.filter(a => a.tipo === tipo);
     if (search) filtered = filtered.filter(a => a.nombre.toLowerCase().includes(search) || a.dni.includes(search));
     filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return filtered;
+}
+
+function updateTablaAsistencias() {
+    const tbody = document.getElementById('tablaAsistencias');
+    const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + a.nombre + '</strong></td><td>' + a.dni + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + a.tipo + '</span></td><td>' + a.date + '</td><td>' + a.time + '</td><td>' + (a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)">📍 Ver</a>' : '-') + '</td></tr>').join('');
+    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + a.nombre + '</strong></td><td>' + a.dni + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + a.tipo + '</span></td><td>' + a.fecha + '</td><td>' + a.hora + '</td><td>' + (a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-') + '</td></tr>').join('');
+    lucide.createIcons();
 }
 function filterAsistencias() { updateTablaAsistencias(); }
 
-// ===================== PUNTOS QR =====================
+// =====================================================
+// PUNTOS QR
+// =====================================================
 function updatePuntosGrid() {
     const grid = document.getElementById('puntosGrid');
-    const baseUrl = getMarcarUrl();
-    const apiBase = getApiBaseUrl();
+    const baseUrl = window.location.href.replace(/admin\.html.*$/, 'marcar.html');
     if (state.puntos.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No hay puntos configurados</h3><p>Crea tu primer punto de marcación</p></div>'; return; }
-    const canEdit = isSuperAdmin();
     grid.innerHTML = state.puntos.map(p => {
-        const url = baseUrl + '?punto=' + p.id + '&api=' + encodeURIComponent(apiBase);
-        return '<div class="punto-card"><h3>📍 ' + p.nombre + '</h3><div class="punto-qr" id="qr-' + p.id + '"></div><div class="punto-url" style="font-size:10px">' + url + '</div><div class="punto-actions"><button class="btn btn-sm btn-secondary" onclick="copyUrl(\'' + url.replace(/'/g, "\\'") + '\')">📋 Copiar</button><button class="btn btn-sm btn-primary" onclick="downloadQR(\'' + p.id + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\')">⬇️ Descargar</button>' + (canEdit ? '<button class="btn btn-sm btn-danger" onclick="deletePunto(\'' + p.id + '\')">🗑️</button>' : '') + '</div></div>';
+        const url = baseUrl + '?punto=' + p.id;
+        return '<div class="punto-card"><h3>📍 ' + p.nombre + '</h3><div class="punto-qr" id="qr-' + p.id + '"></div><div class="punto-url" style="font-size:10px">' + url + '</div><div class="punto-actions"><button class="btn btn-sm btn-secondary" onclick="copyUrl(\'' + url.replace(/'/g, "\\'") + '\')">📋 Copiar</button><button class="btn btn-sm btn-primary" onclick="downloadQR(\'' + p.id + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\')">⬇️ Descargar</button><button class="btn btn-sm btn-danger" onclick="deletePunto(\'' + p.id + '\')">🗑️</button></div></div>';
     }).join('');
     setTimeout(() => {
         state.puntos.forEach(p => {
             const container = document.getElementById('qr-' + p.id);
             if (container && container.children.length === 0) {
-                const url = baseUrl + '?punto=' + p.id + '&api=' + encodeURIComponent(apiBase);
+                const url = baseUrl + '?punto=' + p.id;
                 new QRCode(container, { text: url, width: 180, height: 180, colorDark: '#16a34a', colorLight: '#ffffff' });
             }
         });
@@ -923,7 +902,6 @@ function updatePuntosGrid() {
 }
 
 function openModalPunto() {
-    if (!isSuperAdmin()) { showToast('❌ Solo los Super Admin pueden agregar puntos', 'error'); return; }
     document.getElementById('modalPunto').classList.add('show');
     document.getElementById('formPunto').reset();
     document.getElementById('inputPuntoRadio').value = 150;
@@ -932,10 +910,9 @@ function closeModalPunto() { document.getElementById('modalPunto').classList.rem
 
 async function savePunto(e) {
     e.preventDefault();
-    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
     const latVal = document.getElementById('inputPuntoLat').value.trim();
     const lngVal = document.getElementById('inputPuntoLng').value.trim();
-    if (!latVal || !lngVal) { showToast('❌ Debes ingresar latitud y longitud.', 'error'); return; }
+    if (!latVal || !lngVal) { showToast('Debes ingresar latitud y longitud.', 'error'); return; }
     const punto = {
         id: document.getElementById('inputPuntoId').value.trim().toUpperCase().replace(/\s+/g, '_'),
         nombre: document.getElementById('inputPuntoNombre').value.trim(),
@@ -944,29 +921,47 @@ async function savePunto(e) {
         radio: parseInt(document.getElementById('inputPuntoRadio').value) || 150,
         activo: true
     };
-    if (isNaN(punto.lat) || isNaN(punto.lng)) { showToast('❌ Coordenadas inválidas', 'error'); return; }
-    if (state.puntos.some(p => p.id === punto.id)) { showToast('❌ Ya existe un punto con ese ID', 'error'); return; }
-    state.puntos.push(punto);
-    closeModalPunto();
-    showToast('✅ Punto creado. Guardando...', 'success');
-    await syncPuntosToAPI();
-    updatePuntosGrid();
+    if (isNaN(punto.lat) || isNaN(punto.lng)) { showToast('Coordenadas inválidas', 'error'); return; }
+
+    showLoading(true);
+    try {
+        const { error } = await db.from('qr_points').insert(punto);
+        if (error) {
+            if (error.code === '23505') {
+                showToast('Ya existe un punto con ese ID', 'error');
+                showLoading(false);
+                return;
+            }
+            throw error;
+        }
+        closeModalPunto();
+        showToast('Punto creado', 'success');
+        await loadPoints();
+        updatePuntosGrid();
+    } catch (error) {
+        showToast('Error al crear punto', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
 async function deletePunto(id) {
-    if (!isSuperAdmin()) { showToast('❌ No tienes permisos', 'error'); return; }
     if (!confirm('¿Eliminar este punto?')) return;
-    state.puntos = state.puntos.filter(p => p.id !== id);
-    showToast('✅ Punto eliminado. Guardando...', 'success');
-    await syncPuntosToAPI();
-    updatePuntosGrid();
+    showLoading(true);
+    try {
+        const { error } = await db.from('qr_points').delete().eq('id', id);
+        if (error) throw error;
+        showToast('Punto eliminado', 'success');
+        await loadPoints();
+        updatePuntosGrid();
+    } catch (error) {
+        showToast('Error al eliminar', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
-async function syncPuntosToAPI() {
-    try { await API.put('/config/points', state.puntos); } catch (e) { console.error('Error sincronizando puntos:', e); }
-}
-
-function copyUrl(url) { navigator.clipboard.writeText(url); showToast('📋 URL copiada', 'success'); }
+function copyUrl(url) { navigator.clipboard.writeText(url); showToast('URL copiada', 'success'); }
 function downloadQR(id, nombre) {
     const container = document.getElementById('qr-' + id);
     const canvas = container.querySelector('canvas');
@@ -975,31 +970,159 @@ function downloadQR(id, nombre) {
         link.download = 'QR_' + nombre.replace(/\s+/g, '_') + '.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-        showToast('⬇️ QR descargado', 'success');
+        showToast('QR descargado', 'success');
     }
 }
 
-// ===================== SINCRONIZACIÓN =====================
+// =====================================================
+// USUARIOS
+// =====================================================
+async function loadUsers() {
+    try {
+        const { data } = await db.from('user_profiles').select('*').eq('activo', true).order('fecha_creacion', { ascending: true });
+        state.usuarios = data || [];
+    } catch (e) {}
+}
+
+function updateTablaUsuarios() {
+    const tbody = document.getElementById('tablaUsuarios');
+    const search = document.getElementById('searchUsuario').value.toLowerCase();
+    let filtered = state.usuarios;
+    if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nombre.toLowerCase().includes(search) || (u.email && u.email.toLowerCase().includes(search)));
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><h3>No hay usuarios</h3><p>Agrega un administrador</p></td></tr>'; return; }
+    const isSA = isSuperAdmin();
+    tbody.innerHTML = filtered.map(u => {
+        const isCurrentUser = state.currentUser && u.id === state.currentUser.id;
+        const rolBadge = u.rol === 'super_admin' ? 'super_admin' : 'admin';
+        const rolText = u.rol === 'super_admin' ? 'Super Admin' : 'Admin';
+        const createdDate = u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-';
+        const actions = isSA && !isCurrentUser ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>' : '-';
+        return '<tr><td><strong>' + u.username + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td style="font-size:13px;color:var(--gray-500)">' + (u.email || '-') + '</td><td>' + u.nombre + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td>' + actions + '</td></tr>';
+    }).join('');
+    lucide.createIcons();
+}
+
+function filterUsuarios() { updateTablaUsuarios(); }
+
+function openModalUsuario() {
+    document.getElementById('formUsuario').reset();
+    document.getElementById('modalUsuario').classList.add('show');
+    lucide.createIcons();
+}
+
+function closeModalUsuario() {
+    document.getElementById('modalUsuario').classList.remove('show');
+}
+
+async function saveUsuario(event) {
+    event.preventDefault();
+    const email = document.getElementById('inputUserEmail').value.trim();
+    const password = document.getElementById('inputUserPassword').value;
+    const nombre = document.getElementById('inputUserNombre').value.trim();
+    const username = document.getElementById('inputUserUsername').value.trim().toLowerCase().replace(/\s+/g, '');
+    const rol = document.getElementById('inputUserRol').value;
+
+    if (!email || !password || !nombre || !username) {
+        showToast('Completa todos los campos', 'error');
+        return;
+    }
+
+    if (password.length < 6) {
+        showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+        return;
+    }
+
+    showLoading(true);
+    try {
+        // Crear usuario en Supabase Auth
+        const { data: authData, error: authError } = await db.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (authError) {
+            if (authError.message.includes('already registered')) {
+                showToast('Este email ya está registrado', 'error');
+            } else {
+                showToast(authError.message, 'error');
+            }
+            showLoading(false);
+            return;
+        }
+
+        if (!authData.user) {
+            showToast('Error al crear usuario', 'error');
+            showLoading(false);
+            return;
+        }
+
+        // Crear perfil en user_profiles (incluir email para login por username)
+        const { error: profileError } = await db.from('user_profiles').insert({
+            id: authData.user.id,
+            username: username,
+            nombre: nombre,
+            email: email,
+            rol: rol,
+            activo: true
+        });
+
+        if (profileError) {
+            showToast('Usuario creado pero error en perfil: ' + profileError.message, 'warning');
+        } else {
+            showToast('Usuario creado correctamente', 'success');
+        }
+
+        closeModalUsuario();
+        await loadUsers();
+        updateTablaUsuarios();
+    } catch (error) {
+        showToast('Error al crear usuario', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function deleteUsuario(id) {
+    if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+
+    showLoading(true);
+    try {
+        // Desactivar en user_profiles (no podemos eliminar de auth sin service_role)
+        const { error } = await db.from('user_profiles').update({ activo: false }).eq('id', id);
+        if (error) throw error;
+
+        showToast('Usuario desactivado', 'success');
+        await loadUsers();
+        updateTablaUsuarios();
+    } catch (error) {
+        showToast('Error al eliminar usuario', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// =====================================================
+// SINCRONIZACIÓN
+// =====================================================
 async function loadEmployees() {
     try {
-        const result = await API.get('/employees');
-        if (result.success && result.data) state.trabajadores = result.data;
-    } catch (e) { console.error('Error cargando empleados:', e); }
+        const { data } = await db.from('empleados').select('*').order('nombre', { ascending: true });
+        state.trabajadores = data || [];
+    } catch (e) {}
 }
 
 async function loadAttendance() {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        const result = await API.get('/attendance?date=' + today);
-        if (result.success && result.data) state.asistencias = result.data;
-    } catch (e) { console.error('Error cargando asistencias:', e); }
+        const { data } = await db.from('asistencias').select('*').order('timestamp', { ascending: false }).limit(500);
+        state.asistencias = data || [];
+    } catch (e) {}
 }
 
 async function loadPoints() {
     try {
-        const result = await API.get('/config/points');
-        if (result.success && result.data) state.puntos = result.data;
-    } catch (e) { console.error('Error cargando puntos:', e); }
+        const { data } = await db.from('qr_points').select('*').eq('activo', true);
+        state.puntos = data || [];
+    } catch (e) {}
 }
 
 async function syncData() {
@@ -1007,10 +1130,12 @@ async function syncData() {
     try {
         await Promise.all([loadEmployees(), loadAttendance(), loadPoints()]);
         updateAll();
-        showToast('✅ Datos sincronizados', 'success');
+        showToast('Datos sincronizados', 'success');
     } catch (error) {
-        showToast('⚠️ Error al sincronizar', 'warning');
-    } finally { showLoading(false); }
+        showToast('Error al sincronizar', 'warning');
+    } finally {
+        showLoading(false);
+    }
 }
 
 function updateAll() {
@@ -1018,6 +1143,7 @@ function updateAll() {
     updateTablaTrabajadores();
     updateTablaAsistencias();
     updatePuntosGrid();
+    updateCharts();
 }
 
 function checkConnection() {
@@ -1029,7 +1155,9 @@ function checkConnection() {
 window.addEventListener('online', checkConnection);
 window.addEventListener('offline', checkConnection);
 
-// ===================== EXPORTAR =====================
+// =====================================================
+// EXPORTAR
+// =====================================================
 function exportTrabajadores() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -1037,84 +1165,238 @@ function exportTrabajadores() {
     doc.text('Manuelita - Lista de Trabajadores', 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
     doc.text('Generado: ' + new Date().toLocaleString() + ' | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
-    doc.autoTable({ startY: 40, head: [['DNI', 'Nombre', 'Cargo', 'Área']], body: state.trabajadores.map(t => [t.DNI, t.NOMBRE, t.CARGO, t.AREA]), headStyles: { fillColor: [22, 163, 74] } });
+    doc.autoTable({ startY: 40, head: [['DNI', 'Nombre', 'Cargo', 'Área']], body: state.trabajadores.map(t => [t.dni, t.nombre, t.cargo, t.area]), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('trabajadores_manuelita.pdf');
-    showToast('📄 PDF generado', 'success');
+    showToast('PDF generado', 'success');
 }
 
 function exportAsistencias() {
-    const fecha = document.getElementById('filterFecha').value;
-    const filtered = state.asistencias.filter(a => a.date === fecha);
-    if (filtered.length === 0) { showToast('⚠️ No hay registros para exportar', 'warning'); return; }
+    const filtered = getFilteredAsistencias();
+    if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
+    const fechaInicio = document.getElementById('filterFechaInicio').value;
+    const fechaFin = document.getElementById('filterFechaFin').value;
+    const rangoFecha = fechaInicio === fechaFin ? fechaInicio : fechaInicio + ' a ' + fechaFin;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l');
     doc.setFontSize(20); doc.setTextColor(22, 163, 74);
     doc.text('Manuelita - Reporte de Asistencia', 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
-    doc.text('Fecha: ' + fecha + ' | Total: ' + filtered.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
-    doc.autoTable({ startY: 40, head: [['Trabajador', 'DNI', 'Tipo', 'Hora', 'Punto']], body: filtered.map(a => [a.nombre, a.dni, a.tipo, a.time, a.punto || '-']), headStyles: { fillColor: [22, 163, 74] } });
-    doc.save('asistencia_' + fecha + '.pdf');
-    showToast('📄 PDF generado', 'success');
+    doc.text('Fecha: ' + rangoFecha + ' | Total: ' + filtered.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
+    doc.autoTable({ startY: 40, head: [['Trabajador', 'DNI', 'Tipo', 'Fecha', 'Hora', 'Punto']], body: filtered.map(a => [a.nombre, a.dni, a.tipo, a.fecha, a.hora, a.punto || '-']), headStyles: { fillColor: [22, 163, 74] } });
+    doc.save('asistencia_' + fechaInicio + '.pdf');
+    showToast('PDF generado', 'success');
+}
+
+function exportAsistenciasExcel() {
+    const filtered = getFilteredAsistencias();
+    if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
+    const fechaInicio = document.getElementById('filterFechaInicio').value;
+    const data = filtered.map(a => ({
+        'Trabajador': a.nombre,
+        'DNI': a.dni,
+        'Cargo': a.cargo || '-',
+        'Tipo': a.tipo,
+        'Fecha': a.fecha,
+        'Hora': a.hora,
+        'Punto': a.punto || '-',
+        'Latitud': a.lat || '-',
+        'Longitud': a.lng || '-'
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Asistencias');
+    // Ajustar ancho de columnas
+    ws['!cols'] = [
+        { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 10 },
+        { wch: 12 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 12 }
+    ];
+    XLSX.writeFile(wb, 'asistencias_' + fechaInicio + '.xlsx');
+    showToast('Excel generado', 'success');
 }
 
 async function downloadBackup() {
     showLoading(true);
     try {
-        const [empRes, attRes, ptsRes] = await Promise.all([
-            API.get('/employees'),
-            API.get('/attendance'),
-            API.get('/config/points')
+        const [emp, att, pts] = await Promise.all([
+            db.from('empleados').select('*'),
+            db.from('asistencias').select('*'),
+            db.from('qr_points').select('*')
         ]);
         const backup = {
             fecha: new Date().toISOString(),
             exportadoPor: state.currentUser?.nombre || 'Admin',
-            trabajadores: empRes.data || [],
-            asistencias: attRes.data || [],
-            puntos: ptsRes.data || []
+            trabajadores: emp.data || [],
+            asistencias: att.data || [],
+            puntos: pts.data || []
         };
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = 'backup_manuelita_' + new Date().toISOString().split('T')[0] + '.json';
         a.click(); URL.revokeObjectURL(url);
-        showToast('⬇️ Backup descargado', 'success');
-    } catch (e) { showToast('❌ Error al generar backup', 'error'); }
-    finally { showLoading(false); }
+        showToast('Backup descargado', 'success');
+    } catch (e) {
+        showToast('Error al generar backup', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
-// ===================== GPS UTILIDADES =====================
+// =====================================================
+// GPS UTILIDADES
+// =====================================================
 function usarMiUbicacionPunto() {
-    if (!navigator.geolocation) { showToast('❌ Geolocalización no soportada', 'error'); return; }
-    showToast('📍 Obteniendo ubicación...', 'warning');
+    if (!navigator.geolocation) { showToast('Geolocalización no soportada', 'error'); return; }
+    showToast('Obteniendo ubicación...', 'warning');
     navigator.geolocation.getCurrentPosition(
         function(position) {
             document.getElementById('inputPuntoLat').value = position.coords.latitude.toFixed(6);
             document.getElementById('inputPuntoLng').value = position.coords.longitude.toFixed(6);
-            showToast('✅ Ubicación obtenida', 'success');
+            showToast('Ubicación obtenida', 'success');
         },
         function(error) {
             let msg = 'Error obteniendo ubicación';
             if (error.code === 1) msg = 'Permiso de ubicación denegado';
             else if (error.code === 3) msg = 'Tiempo agotado obteniendo ubicación';
-            showToast('❌ ' + msg, 'error');
+            showToast('' + msg, 'error');
         },
         { enableHighAccuracy: true, timeout: 15000 }
     );
 }
 
-// ===================== UTILIDADES =====================
+async function saveGpsConfig() {
+    const enabled = document.getElementById('configGpsEnabled').checked;
+    try {
+        await db.from('system_config').upsert({ key: 'gps_enabled', value: enabled ? 'true' : 'false' });
+        showToast(enabled ? 'GPS activado' : 'GPS desactivado', 'success');
+    } catch (e) {
+        showToast('Error guardando configuración', 'error');
+    }
+}
+
+async function loadGpsConfig() {
+    try {
+        const { data } = await db.from('system_config').select('value').eq('key', 'gps_enabled').maybeSingle();
+        const enabled = data && data.value === 'true';
+        document.getElementById('configGpsEnabled').checked = enabled;
+    } catch (e) {
+        document.getElementById('configGpsEnabled').checked = false;
+    }
+}
+
+// =====================================================
+// GRÁFICOS (CHART.JS)
+// =====================================================
+let chartAsistencia = null;
+let chartTipos = null;
+
+function initCharts() {
+    const ctxAsistencia = document.getElementById('chartAsistencia').getContext('2d');
+    const ctxTipos = document.getElementById('chartTipos').getContext('2d');
+
+    // Gráfico de barras - Asistencia semanal
+    chartAsistencia = new Chart(ctxAsistencia, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Entradas', data: [], backgroundColor: 'rgba(5, 150, 105, 0.8)', borderRadius: 4 },
+                { label: 'Salidas', data: [], backgroundColor: 'rgba(2, 132, 199, 0.8)', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+
+    // Gráfico de dona - Distribución Entrada/Salida
+    chartTipos = new Chart(ctxTipos, {
+        type: 'doughnut',
+        data: {
+            labels: ['Entradas', 'Salidas'],
+            datasets: [{
+                data: [0, 0],
+                backgroundColor: ['rgba(5, 150, 105, 0.8)', 'rgba(2, 132, 199, 0.8)'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    updateCharts();
+}
+
+function updateCharts() {
+    if (!chartAsistencia || !chartTipos) return;
+
+    // Obtener últimos 7 días
+    const dias = [];
+    const labels = [];
+    const entradas = [];
+    const salidas = [];
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const fecha = d.toISOString().split('T')[0];
+        dias.push(fecha);
+        labels.push(d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric' }));
+    }
+
+    dias.forEach(fecha => {
+        const dayRecords = state.asistencias.filter(a => a.fecha === fecha);
+        entradas.push(dayRecords.filter(a => a.tipo === 'ENTRADA').length);
+        salidas.push(dayRecords.filter(a => a.tipo === 'SALIDA').length);
+    });
+
+    // Actualizar gráfico de barras
+    chartAsistencia.data.labels = labels;
+    chartAsistencia.data.datasets[0].data = entradas;
+    chartAsistencia.data.datasets[1].data = salidas;
+    chartAsistencia.update();
+
+    // Actualizar gráfico de dona (hoy)
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = state.asistencias.filter(a => a.fecha === today);
+    const totalEntradas = todayRecords.filter(a => a.tipo === 'ENTRADA').length;
+    const totalSalidas = todayRecords.filter(a => a.tipo === 'SALIDA').length;
+    chartTipos.data.datasets[0].data = [totalEntradas, totalSalidas];
+    chartTipos.update();
+}
+
+// =====================================================
+// UTILIDADES
+// =====================================================
 function updateDateTime() {
-    const now = new Date();
-    document.getElementById('headerDatetime').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ' + now.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }) + ' • ' + now.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('headerDatetime').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ' + new Date().toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }) + ' • ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 }
 function showLoading(show) { document.getElementById('loading').classList.toggle('show', show); }
 function showToast(message, type) {
     const toast = document.getElementById('toast');
-    toast.textContent = message;
+    const iconName = type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'alert-triangle';
+    toast.innerHTML = '<i data-lucide="' + iconName + '" style="width:18px;height:18px"></i> ' + message;
     toast.className = 'toast ' + (type || 'success') + ' show';
+    lucide.createIcons();
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModalTrabajador(); closeModalPunto(); closeModalUsuario(); } });
+
+// =====================================================
+// INICIALIZACIÓN
+// =====================================================
+document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
+    lucide.createIcons();
+});
     </script>
 </body>
 </html>
