@@ -1241,7 +1241,7 @@ async function deleteTrabajador(dni) {
 // =====================================================
 // ASISTENCIAS
 // =====================================================
-function getFilteredAsistencias() {
+function getFilteredAsistencias(skipTipo) {
     const search = document.getElementById('searchAsistencia').value.toLowerCase();
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const fechaFin = document.getElementById('filterFechaFin').value;
@@ -1253,7 +1253,7 @@ function getFilteredAsistencias() {
     } else if (fechaInicio) {
         filtered = filtered.filter(a => a.fecha === fechaInicio);
     }
-    if (tipo) filtered = filtered.filter(a => a.tipo === tipo);
+    if (tipo && !skipTipo) filtered = filtered.filter(a => a.tipo === tipo);
     if (search) filtered = filtered.filter(a => a.nombre.toLowerCase().includes(search) || a.dni.includes(search));
     filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return filtered;
@@ -1267,7 +1267,7 @@ function getActiveAsistenciasTableKey() {
     return getAsistenciasViewMode() === 'grouped' ? 'asistencias_grouped' : 'asistencias';
 }
 
-function getGroupedAsistencias(filtered) {
+function getGroupedAsistencias(filtered, tipoFilter) {
     const groups = {};
     filtered.forEach(a => {
         const key = a.dni + '|' + a.fecha;
@@ -1277,8 +1277,11 @@ function getGroupedAsistencias(filtered) {
         if (a.tipo === 'ENTRADA') groups[key].entradas.push(a);
         else if (a.tipo === 'SALIDA') groups[key].salidas.push(a);
     });
-    return Object.values(groups).map(g => {
-        // First entry (earliest timestamp)
+    let result = Object.values(groups);
+    // Filter groups by type: show only groups that have at least one record of that type
+    if (tipoFilter === 'ENTRADA') result = result.filter(g => g.entradas.length > 0);
+    else if (tipoFilter === 'SALIDA') result = result.filter(g => g.salidas.length > 0);
+    return result.map(g => {
         g.entradas.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         g.salidas.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const entrada = g.entradas[0] || null;
@@ -1295,7 +1298,6 @@ function getGroupedAsistencias(filtered) {
             lng: entrada ? entrada.lng : (salida ? salida.lng : null)
         };
     }).sort((a, b) => {
-        // Sort by fecha desc, then by nombre asc
         if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
         return a.nombre.localeCompare(b.nombre);
     });
@@ -1322,15 +1324,17 @@ function updateViewToggleButton() {
 
 function updateTablaAsistencias() {
     const tbody = document.getElementById('tablaAsistencias');
-    const filtered = getFilteredAsistencias();
     const tableKey = getActiveAsistenciasTableKey();
     const visCols = getVisibleColumns(tableKey);
     const colspan = visCols.length;
     if (getAsistenciasViewMode() === 'grouped') {
-        const grouped = getGroupedAsistencias(filtered);
+        const allFiltered = getFilteredAsistencias(true);
+        const tipoFilter = document.getElementById('filterTipo').value;
+        const grouped = getGroupedAsistencias(allFiltered, tipoFilter);
         if (grouped.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
         tbody.innerHTML = grouped.map(a => renderTableRow(tableKey, a)).join('');
     } else {
+        const filtered = getFilteredAsistencias();
         if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
         tbody.innerHTML = filtered.map(a => renderTableRow(tableKey, a)).join('');
     }
@@ -1632,11 +1636,12 @@ function exportTrabajadores() {
 }
 
 function exportAsistencias() {
-    const filtered = getFilteredAsistencias();
+    const isGrouped = getAsistenciasViewMode() === 'grouped';
+    const tipoFilter = document.getElementById('filterTipo').value;
+    const filtered = getFilteredAsistencias(isGrouped);
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
     const tableKey = getActiveAsistenciasTableKey();
-    const isGrouped = getAsistenciasViewMode() === 'grouped';
-    const exportData = isGrouped ? getGroupedAsistencias(filtered) : filtered;
+    const exportData = isGrouped ? getGroupedAsistencias(filtered, tipoFilter) : filtered;
     const cols = getVisibleColumns(tableKey);
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const fechaFin = document.getElementById('filterFechaFin').value;
@@ -1654,11 +1659,12 @@ function exportAsistencias() {
 }
 
 function exportAsistenciasExcel() {
-    const filtered = getFilteredAsistencias();
+    const isGrouped = getAsistenciasViewMode() === 'grouped';
+    const tipoFilter = document.getElementById('filterTipo').value;
+    const filtered = getFilteredAsistencias(isGrouped);
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
     const tableKey = getActiveAsistenciasTableKey();
-    const isGrouped = getAsistenciasViewMode() === 'grouped';
-    const exportData = isGrouped ? getGroupedAsistencias(filtered) : filtered;
+    const exportData = isGrouped ? getGroupedAsistencias(filtered, tipoFilter) : filtered;
     const cols = getVisibleColumns(tableKey);
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const data = exportData.map(a => {
