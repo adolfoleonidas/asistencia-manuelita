@@ -8,6 +8,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -472,27 +474,6 @@
 
     <script>
 // =====================================================
-// CONFIGURACIÓN DE SUPABASE
-// =====================================================
-// Credenciales hardcodeadas
-const SUPABASE_URL = 'https://ecruxlrjzatkbrpgdcaj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnV4bHJqemF0a2JycGdkY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDg0NzYsImV4cCI6MjA4NTE4NDQ3Nn0.X59-l7JQyFRTosmQmet8tLkviXyQCov5mJY6dftyrf0';
-let db = null;
-
-function initSupabase() {
-    if (SUPABASE_URL && SUPABASE_KEY) {
-        try {
-            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            return true;
-        } catch(e) {
-            console.error('Error inicializando Supabase:', e);
-            return false;
-        }
-    }
-    return false;
-}
-
-// =====================================================
 // ESTADO DE LA APLICACIÓN
 // =====================================================
 let state = {
@@ -507,8 +488,8 @@ let state = {
 // AUTENTICACIÓN
 // =====================================================
 async function initAuth() {
-    if (!initSupabase()) {
-        showConfigPrompt();
+    if (!db) {
+        showToast('Supabase no configurado. Revisa config.js', 'error');
         return;
     }
 
@@ -525,23 +506,6 @@ async function initAuth() {
             showLogin();
         }
     });
-}
-
-function showConfigPrompt() {
-    document.getElementById('loginContainer').style.display = 'none';
-    document.getElementById('mainApp').classList.remove('show');
-
-    const config = prompt('Ingresa tu SUPABASE_URL (ej: https://xxxx.supabase.co):');
-    if (config) {
-        SUPABASE_URL = config.trim();
-        const key = prompt('Ingresa tu SUPABASE_ANON_KEY:');
-        if (key) {
-            SUPABASE_KEY = key.trim();
-            localStorage.setItem('supabase_url', SUPABASE_URL);
-            localStorage.setItem('supabase_key', SUPABASE_KEY);
-            location.reload();
-        }
-    }
 }
 
 async function loadUserProfile(user) {
@@ -761,7 +725,7 @@ function updateDashboard() {
 function updateActivityList(records) {
     const list = document.getElementById('activityList');
     if (records.length === 0) { list.innerHTML = '<li class="activity-item"><div style="text-align:center;width:100%;padding:30px;color:var(--gray-400)">No hay actividad hoy</div></li>'; return; }
-    list.innerHTML = records.map(r => '<li class="activity-item"><div class="activity-icon ' + r.tipo.toLowerCase() + '">' + (r.tipo === 'ENTRADA' ? '✅' : '🚪') + '</div><div class="activity-content"><div class="activity-name">' + r.nombre + '</div><div class="activity-detail">' + r.tipo + ' • ' + (r.punto || 'Principal') + '</div></div><div class="activity-time">' + r.hora + '</div></li>').join('');
+    list.innerHTML = records.map(r => '<li class="activity-item"><div class="activity-icon ' + r.tipo.toLowerCase() + '">' + (r.tipo === 'ENTRADA' ? '✅' : '🚪') + '</div><div class="activity-content"><div class="activity-name">' + escapeHtml(r.nombre) + '</div><div class="activity-detail">' + escapeHtml(r.tipo) + ' • ' + escapeHtml(r.punto || 'Principal') + '</div></div><div class="activity-time">' + escapeHtml(r.hora) + '</div></li>').join('');
 }
 
 // =====================================================
@@ -773,7 +737,7 @@ function updateTablaTrabajadores() {
     let filtered = state.trabajadores;
     if (search) filtered = filtered.filter(t => t.dni.includes(search) || t.nombre.toLowerCase().includes(search) || t.cargo.toLowerCase().includes(search) || t.area.toLowerCase().includes(search));
     if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + t.dni + '</strong></td><td>' + t.nombre + '</td><td>' + t.cargo + '</td><td>' + t.area + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick=\'editTrabajador(' + JSON.stringify(t).replace(/'/g, "\\'") + ')\'>Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + t.dni + '\')">Eliminar</button></div></td></tr>').join('');
+    tbody.innerHTML = filtered.map(t => '<tr><td><strong>' + escapeHtml(t.dni) + '</strong></td><td>' + escapeHtml(t.nombre) + '</td><td>' + escapeHtml(t.cargo) + '</td><td>' + escapeHtml(t.area) + '</td><td><div class="action-btns"><button class="btn btn-sm btn-secondary" onclick="editTrabajador(\'' + escapeHtml(t.dni) + '\')">Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + escapeHtml(t.dni) + '\')">Eliminar</button></div></td></tr>').join('');
 }
 
 function filterTrabajadores() { updateTablaTrabajadores(); }
@@ -796,7 +760,7 @@ function openModalTrabajador(t) {
     document.getElementById('modalTrabajador').classList.add('show');
 }
 function closeModalTrabajador() { document.getElementById('modalTrabajador').classList.remove('show'); }
-function editTrabajador(t) { openModalTrabajador(t); }
+function editTrabajador(dni) { const t = state.trabajadores.find(w => w.dni === dni); if (t) openModalTrabajador(t); }
 
 async function saveTrabajador(e) {
     e.preventDefault();
@@ -874,7 +838,7 @@ function updateTablaAsistencias() {
     const tbody = document.getElementById('tablaAsistencias');
     const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + a.nombre + '</strong></td><td>' + a.dni + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + a.tipo + '</span></td><td>' + a.fecha + '</td><td>' + a.hora + '</td><td>' + (a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-') + '</td></tr>').join('');
+    tbody.innerHTML = filtered.map(a => '<tr><td><strong>' + escapeHtml(a.nombre) + '</strong></td><td>' + escapeHtml(a.dni) + '</td><td><span class="badge ' + a.tipo.toLowerCase() + '">' + escapeHtml(a.tipo) + '</span></td><td>' + escapeHtml(a.fecha) + '</td><td>' + escapeHtml(a.hora) + '</td><td>' + escapeHtml(a.punto || '-') + '</td><td>' + (a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-') + '</td></tr>').join('');
     lucide.createIcons();
 }
 function filterAsistencias() { updateTablaAsistencias(); }
@@ -888,7 +852,7 @@ function updatePuntosGrid() {
     if (state.puntos.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No hay puntos configurados</h3><p>Crea tu primer punto de marcación</p></div>'; return; }
     grid.innerHTML = state.puntos.map(p => {
         const url = baseUrl + '?punto=' + p.id;
-        return '<div class="punto-card"><h3>📍 ' + p.nombre + '</h3><div class="punto-qr" id="qr-' + p.id + '"></div><div class="punto-url" style="font-size:10px">' + url + '</div><div class="punto-actions"><button class="btn btn-sm btn-secondary" onclick="copyUrl(\'' + url.replace(/'/g, "\\'") + '\')">📋 Copiar</button><button class="btn btn-sm btn-primary" onclick="downloadQR(\'' + p.id + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\')">⬇️ Descargar</button><button class="btn btn-sm btn-danger" onclick="deletePunto(\'' + p.id + '\')">🗑️</button></div></div>';
+        return '<div class="punto-card"><h3>📍 ' + escapeHtml(p.nombre) + '</h3><div class="punto-qr" id="qr-' + escapeHtml(p.id) + '"></div><div class="punto-url" style="font-size:10px">' + escapeHtml(url) + '</div><div class="punto-actions"><button class="btn btn-sm btn-secondary" onclick="copyUrl(\'' + url.replace(/'/g, "\\'") + '\')">📋 Copiar</button><button class="btn btn-sm btn-primary" onclick="downloadQR(\'' + escapeHtml(p.id) + '\')">⬇️ Descargar</button><button class="btn btn-sm btn-danger" onclick="deletePunto(\'' + escapeHtml(p.id) + '\')">🗑️</button></div></div>';
     }).join('');
     setTimeout(() => {
         state.puntos.forEach(p => {
@@ -962,7 +926,9 @@ async function deletePunto(id) {
 }
 
 function copyUrl(url) { navigator.clipboard.writeText(url); showToast('URL copiada', 'success'); }
-function downloadQR(id, nombre) {
+function downloadQR(id) {
+    const punto = state.puntos.find(p => p.id === id);
+    const nombre = punto ? punto.nombre : id;
     const container = document.getElementById('qr-' + id);
     const canvas = container.querySelector('canvas');
     if (canvas) {
@@ -997,7 +963,7 @@ function updateTablaUsuarios() {
         const rolText = u.rol === 'super_admin' ? 'Super Admin' : 'Admin';
         const createdDate = u.fecha_creacion ? new Date(u.fecha_creacion).toLocaleDateString('es-PE') : '-';
         const actions = isSA && !isCurrentUser ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>' : '-';
-        return '<tr><td><strong>' + u.username + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td style="font-size:13px;color:var(--gray-500)">' + (u.email || '-') + '</td><td>' + u.nombre + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td>' + actions + '</td></tr>';
+        return '<tr><td><strong>' + escapeHtml(u.username) + '</strong>' + (isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : '') + '</td><td style="font-size:13px;color:var(--gray-500)">' + escapeHtml(u.email || '-') + '</td><td>' + escapeHtml(u.nombre) + '</td><td><span class="badge ' + rolBadge + '">' + rolText + '</span></td><td>' + createdDate + '</td><td>' + actions + '</td></tr>';
     }).join('');
     lucide.createIcons();
 }

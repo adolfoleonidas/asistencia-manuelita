@@ -7,6 +7,8 @@
     <meta name="theme-color" content="#16a34a">
     <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -212,20 +214,6 @@
     <div class="toast" id="toast"></div>
 
     <script>
-// =====================================================
-// CONFIGURACIÓN DE SUPABASE
-// =====================================================
-// Credenciales hardcodeadas
-const SUPABASE_URL = 'https://ecruxlrjzatkbrpgdcaj.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjcnV4bHJqemF0a2JycGdkY2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MDg0NzYsImV4cCI6MjA4NTE4NDQ3Nn0.X59-l7JQyFRTosmQmet8tLkviXyQCov5mJY6dftyrf0';
-let db = null;
-
-try {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch(e) {
-    console.error('Error inicializando Supabase:', e);
-}
-
 // =====================================================
 // ESTADO
 // =====================================================
@@ -790,8 +778,8 @@ async function showQuickMark(employee, tipo) {
             return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200)">' +
                 '<div style="display:flex;align-items:center;gap:8px">' +
                 '<i data-lucide="' + (isEnt ? 'log-in' : 'log-out') + '" style="width:16px;height:16px;color:' + (isEnt ? 'var(--success)' : 'var(--info)') + '"></i>' +
-                '<span style="font-size:13px;color:var(--gray-700)">' + h.tipo + '</span></div>' +
-                '<span style="font-size:12px;color:var(--gray-500)">' + h.fecha + ' ' + h.hora + '</span></div>';
+                '<span style="font-size:13px;color:var(--gray-700)">' + escapeHtml(h.tipo) + '</span></div>' +
+                '<span style="font-size:12px;color:var(--gray-500)">' + escapeHtml(h.fecha) + ' ' + escapeHtml(h.hora) + '</span></div>';
         }).join('');
     } else {
         historyContainer.style.display = 'none';
