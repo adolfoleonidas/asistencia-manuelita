@@ -358,6 +358,7 @@
                             <select id="filterTipo" onchange="filterAsistencias()"><option value="">Todos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select>
                         </div>
                         <div style="display:flex;gap:8px">
+                            <button class="btn btn-secondary" id="btnViewToggle" onclick="toggleAsistenciasView()"><i data-lucide="list" style="width:16px;height:16px" id="btnViewToggleIcon"></i> <span class="btn-text" id="btnViewToggleText">Agrupada</span></button>
                             <button class="btn btn-secondary" onclick="exportAsistenciasExcel()"><i data-lucide="file-spreadsheet" style="width:16px;height:16px"></i> <span class="btn-text">Excel</span></button>
                             <button class="btn btn-primary" onclick="exportAsistencias()"><i data-lucide="file-text" style="width:16px;height:16px"></i> <span class="btn-text">PDF</span></button>
                             <button class="btn btn-secondary btn-columns" onclick="openColumnConfigModal('asistencias')"><i data-lucide="columns" style="width:16px;height:16px"></i> <span class="btn-text">Columnas</span></button>
@@ -579,6 +580,40 @@ const COLUMN_DEFS = {
           renderPdf: a => a.lng || '-',
           renderExcel: a => a.lng || '-' }
     ],
+    asistencias_grouped: [
+        { id: 'nombre', label: 'Trabajador', defaultVisible: true,
+          renderHtml: a => '<strong>' + escapeHtml(a.nombre) + '</strong>',
+          renderPdf: a => a.nombre,
+          renderExcel: a => a.nombre },
+        { id: 'dni', label: 'DNI', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.dni),
+          renderPdf: a => a.dni,
+          renderExcel: a => a.dni },
+        { id: 'cargo', label: 'Cargo', defaultVisible: false,
+          renderHtml: a => escapeHtml(a.cargo || '-'),
+          renderPdf: a => a.cargo || '-',
+          renderExcel: a => a.cargo || '-' },
+        { id: 'fecha', label: 'Fecha', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.fecha),
+          renderPdf: a => a.fecha,
+          renderExcel: a => a.fecha },
+        { id: 'entrada', label: 'Entrada', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.horaEntrada || '\u2014'),
+          renderPdf: a => a.horaEntrada || '\u2014',
+          renderExcel: a => a.horaEntrada || '\u2014' },
+        { id: 'salida', label: 'Salida', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.horaSalida || '\u2014'),
+          renderPdf: a => a.horaSalida || '\u2014',
+          renderExcel: a => a.horaSalida || '\u2014' },
+        { id: 'punto', label: 'Punto', defaultVisible: true,
+          renderHtml: a => escapeHtml(a.punto || '-'),
+          renderPdf: a => a.punto || '-',
+          renderExcel: a => a.punto || '-' },
+        { id: 'ubicacion', label: 'Ubicación', defaultVisible: true,
+          renderHtml: a => a.lat ? '<a href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '" target="_blank" style="color:var(--primary)"><i data-lucide="map-pin" style="width:14px;height:14px"></i></a>' : '-',
+          renderPdf: a => a.lat ? a.lat + ',' + a.lng : '-',
+          renderExcel: a => a.lat ? a.lat + ',' + a.lng : '-' }
+    ],
     usuarios: [
         { id: 'username', label: 'Usuario', defaultVisible: true,
           renderHtml: (u, extra) => '<strong>' + escapeHtml(u.username) + '</strong>' + (extra.isCurrentUser ? ' <span style="color:var(--primary)">(tú)</span>' : ''),
@@ -611,6 +646,7 @@ function getDefaultColumnPrefs() {
             hidden: cols.filter(c => !c.defaultVisible).map(c => c.id)
         };
     }
+    prefs.asistencias.viewMode = 'detailed';
     return prefs;
 }
 
@@ -632,6 +668,8 @@ async function loadColumnPrefs() {
                 saved[tableKey].columns = saved[tableKey].columns.filter(id => allIds.includes(id));
                 saved[tableKey].hidden = (saved[tableKey].hidden || []).filter(id => allIds.includes(id));
             }
+            // Ensure viewMode exists for asistencias
+            if (saved.asistencias && !saved.asistencias.viewMode) saved.asistencias.viewMode = 'detailed';
             state.columnPrefs = saved;
         } else {
             state.columnPrefs = getDefaultColumnPrefs();
@@ -690,13 +728,17 @@ function renderAllTableHeads() {
     const thAsis = document.getElementById('theadAsistencias');
     const thUsu = document.getElementById('theadUsuarios');
     if (thTrab) thTrab.innerHTML = renderTableHead('trabajadores', true);
-    if (thAsis) thAsis.innerHTML = renderTableHead('asistencias', false);
+    if (thAsis) thAsis.innerHTML = renderTableHead(getActiveAsistenciasTableKey(), false);
     if (thUsu) thUsu.innerHTML = renderTableHead('usuarios', true);
 }
 
 function openColumnConfigModal(tableKey) {
+    // If opening for asistencias and in grouped mode, use the grouped key
+    if (tableKey === 'asistencias' && getAsistenciasViewMode() === 'grouped') {
+        tableKey = 'asistencias_grouped';
+    }
     const modal = document.getElementById('modalColumnConfig');
-    const titleMap = { trabajadores: 'Trabajadores', asistencias: 'Asistencias', usuarios: 'Usuarios' };
+    const titleMap = { trabajadores: 'Trabajadores', asistencias: 'Asistencias', asistencias_grouped: 'Asistencias (Agrupada)', usuarios: 'Usuarios' };
     document.getElementById('modalColumnConfigTitle').textContent = 'Columnas: ' + (titleMap[tableKey] || tableKey);
     document.getElementById('columnConfigTableKey').value = tableKey;
     const list = document.getElementById('colConfigList');
@@ -726,7 +768,16 @@ function saveColumnConfigFromModal() {
         if (!item.querySelector('.col-toggle').checked) hidden.push(id);
     });
     if (!state.columnPrefs) state.columnPrefs = getDefaultColumnPrefs();
+    const existingViewMode = state.columnPrefs[tableKey]?.viewMode;
     state.columnPrefs[tableKey] = { columns, hidden };
+    // Preserve viewMode for asistencias
+    if (tableKey === 'asistencias' && existingViewMode) {
+        state.columnPrefs[tableKey].viewMode = existingViewMode;
+    }
+    // Sync shared columns between asistencias views
+    if (tableKey === 'asistencias' || tableKey === 'asistencias_grouped') {
+        syncAsistenciasColumnPrefs(tableKey);
+    }
     saveColumnPrefs();
     renderAllTableHeads();
     updateTablaTrabajadores();
@@ -734,6 +785,37 @@ function saveColumnConfigFromModal() {
     updateTablaUsuarios();
     closeColumnConfigModal();
     showToast('Columnas actualizadas', 'success');
+}
+
+function syncAsistenciasColumnPrefs(sourceKey) {
+    const targetKey = sourceKey === 'asistencias' ? 'asistencias_grouped' : 'asistencias';
+    if (!state.columnPrefs[sourceKey] || !state.columnPrefs[targetKey]) return;
+    const sharedIds = ['nombre', 'dni', 'cargo', 'fecha', 'punto', 'ubicacion'];
+    const sourcePrefs = state.columnPrefs[sourceKey];
+    const targetPrefs = state.columnPrefs[targetKey];
+
+    // Sync hidden state for shared columns
+    sharedIds.forEach(id => {
+        const hiddenInSource = (sourcePrefs.hidden || []).includes(id);
+        const hiddenInTarget = (targetPrefs.hidden || []).includes(id);
+        if (hiddenInSource && !hiddenInTarget) {
+            targetPrefs.hidden.push(id);
+        } else if (!hiddenInSource && hiddenInTarget) {
+            targetPrefs.hidden = targetPrefs.hidden.filter(h => h !== id);
+        }
+    });
+
+    // Sync order: keep non-shared columns in place, replace shared slots with source order
+    const sourceSharedOrder = sourcePrefs.columns.filter(id => sharedIds.includes(id));
+    const sharedPositions = [];
+    targetPrefs.columns.forEach((id, idx) => {
+        if (sharedIds.includes(id)) sharedPositions.push(idx);
+    });
+    const newColumns = [...targetPrefs.columns];
+    sourceSharedOrder.forEach((id, i) => {
+        if (i < sharedPositions.length) newColumns[sharedPositions[i]] = id;
+    });
+    targetPrefs.columns = newColumns;
 }
 
 function resetColumnPrefsFromModal() {
@@ -887,6 +969,7 @@ async function showApp() {
     document.getElementById('configSupabaseKey').value = SUPABASE_KEY;
     await loadColumnPrefs();
     renderAllTableHeads();
+    updateViewToggleButton();
     syncData();
     checkConnection();
     loadGpsConfig();
@@ -1176,13 +1259,81 @@ function getFilteredAsistencias() {
     return filtered;
 }
 
+function getAsistenciasViewMode() {
+    return state.columnPrefs?.asistencias?.viewMode || 'detailed';
+}
+
+function getActiveAsistenciasTableKey() {
+    return getAsistenciasViewMode() === 'grouped' ? 'asistencias_grouped' : 'asistencias';
+}
+
+function getGroupedAsistencias(filtered) {
+    const groups = {};
+    filtered.forEach(a => {
+        const key = a.dni + '|' + a.fecha;
+        if (!groups[key]) {
+            groups[key] = { nombre: a.nombre, dni: a.dni, cargo: a.cargo || '', fecha: a.fecha, entradas: [], salidas: [] };
+        }
+        if (a.tipo === 'ENTRADA') groups[key].entradas.push(a);
+        else if (a.tipo === 'SALIDA') groups[key].salidas.push(a);
+    });
+    return Object.values(groups).map(g => {
+        // First entry (earliest timestamp)
+        g.entradas.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        g.salidas.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const entrada = g.entradas[0] || null;
+        const salida = g.salidas.length > 0 ? g.salidas[g.salidas.length - 1] : null;
+        return {
+            nombre: g.nombre,
+            dni: g.dni,
+            cargo: g.cargo,
+            fecha: g.fecha,
+            horaEntrada: entrada ? entrada.hora : null,
+            horaSalida: salida ? salida.hora : null,
+            punto: entrada ? (entrada.punto || '-') : (salida ? (salida.punto || '-') : '-'),
+            lat: entrada ? entrada.lat : (salida ? salida.lat : null),
+            lng: entrada ? entrada.lng : (salida ? salida.lng : null)
+        };
+    }).sort((a, b) => {
+        // Sort by fecha desc, then by nombre asc
+        if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
+        return a.nombre.localeCompare(b.nombre);
+    });
+}
+
+function toggleAsistenciasView() {
+    if (!state.columnPrefs) state.columnPrefs = getDefaultColumnPrefs();
+    const current = getAsistenciasViewMode();
+    state.columnPrefs.asistencias.viewMode = current === 'detailed' ? 'grouped' : 'detailed';
+    saveColumnPrefs();
+    renderAllTableHeads();
+    updateTablaAsistencias();
+    updateViewToggleButton();
+}
+
+function updateViewToggleButton() {
+    const mode = getAsistenciasViewMode();
+    const textEl = document.getElementById('btnViewToggleText');
+    const iconEl = document.getElementById('btnViewToggleIcon');
+    if (textEl) textEl.textContent = mode === 'detailed' ? 'Agrupada' : 'Detallada';
+    if (iconEl) iconEl.setAttribute('data-lucide', mode === 'detailed' ? 'list' : 'rows-3');
+    lucide.createIcons();
+}
+
 function updateTablaAsistencias() {
     const tbody = document.getElementById('tablaAsistencias');
     const filtered = getFilteredAsistencias();
-    const visCols = getVisibleColumns('asistencias');
+    const tableKey = getActiveAsistenciasTableKey();
+    const visCols = getVisibleColumns(tableKey);
     const colspan = visCols.length;
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-    tbody.innerHTML = filtered.map(a => renderTableRow('asistencias', a)).join('');
+    if (getAsistenciasViewMode() === 'grouped') {
+        const grouped = getGroupedAsistencias(filtered);
+        if (grouped.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
+        tbody.innerHTML = grouped.map(a => renderTableRow(tableKey, a)).join('');
+    } else {
+        if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
+        tbody.innerHTML = filtered.map(a => renderTableRow(tableKey, a)).join('');
+    }
     lucide.createIcons();
 }
 function filterAsistencias() { updateTablaAsistencias(); }
@@ -1483,17 +1634,21 @@ function exportTrabajadores() {
 function exportAsistencias() {
     const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
-    const cols = getVisibleColumns('asistencias');
+    const tableKey = getActiveAsistenciasTableKey();
+    const isGrouped = getAsistenciasViewMode() === 'grouped';
+    const exportData = isGrouped ? getGroupedAsistencias(filtered) : filtered;
+    const cols = getVisibleColumns(tableKey);
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const fechaFin = document.getElementById('filterFechaFin').value;
     const rangoFecha = fechaInicio === fechaFin ? fechaInicio : fechaInicio + ' a ' + fechaFin;
+    const modeLabel = isGrouped ? ' (Agrupada)' : '';
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l');
     doc.setFontSize(20); doc.setTextColor(22, 163, 74);
-    doc.text('Manuelita - Reporte de Asistencia', 14, 22);
+    doc.text('Manuelita - Reporte de Asistencia' + modeLabel, 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
-    doc.text('Fecha: ' + rangoFecha + ' | Total: ' + filtered.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
-    doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: filtered.map(a => cols.map(c => c.renderPdf(a))), headStyles: { fillColor: [22, 163, 74] } });
+    doc.text('Fecha: ' + rangoFecha + ' | Total: ' + exportData.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
+    doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: exportData.map(a => cols.map(c => c.renderPdf(a))), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('asistencia_' + fechaInicio + '.pdf');
     showToast('PDF generado', 'success');
 }
@@ -1501,9 +1656,12 @@ function exportAsistencias() {
 function exportAsistenciasExcel() {
     const filtered = getFilteredAsistencias();
     if (filtered.length === 0) { showToast('No hay registros para exportar', 'warning'); return; }
-    const cols = getVisibleColumns('asistencias');
+    const tableKey = getActiveAsistenciasTableKey();
+    const isGrouped = getAsistenciasViewMode() === 'grouped';
+    const exportData = isGrouped ? getGroupedAsistencias(filtered) : filtered;
+    const cols = getVisibleColumns(tableKey);
     const fechaInicio = document.getElementById('filterFechaInicio').value;
-    const data = filtered.map(a => {
+    const data = exportData.map(a => {
         const row = {};
         cols.forEach(c => { row[c.label] = c.renderExcel(a); });
         return row;
