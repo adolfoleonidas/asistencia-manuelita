@@ -1121,10 +1121,20 @@ function toggleSidebar() {
 }
 
 // =====================================================
+// UTILIDAD DE FECHA LOCAL
+// =====================================================
+function getLocalDateString(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// =====================================================
 // DASHBOARD
 // =====================================================
 function updateDashboard() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const todayRecords = state.asistencias.filter(a => a.fecha === today);
     const entradas = todayRecords.filter(a => a.tipo === 'ENTRADA');
     const salidas = todayRecords.filter(a => a.tipo === 'SALIDA');
@@ -1813,7 +1823,7 @@ function updateCharts() {
     for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const fecha = d.toISOString().split('T')[0];
+        const fecha = getLocalDateString(d);
         dias.push(fecha);
         labels.push(d.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric' }));
     }
@@ -1831,7 +1841,7 @@ function updateCharts() {
     chartAsistencia.update();
 
     // Actualizar gráfico de dona (hoy)
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const todayRecords = state.asistencias.filter(a => a.fecha === today);
     const totalEntradas = todayRecords.filter(a => a.tipo === 'ENTRADA').length;
     const totalSalidas = todayRecords.filter(a => a.tipo === 'SALIDA').length;
