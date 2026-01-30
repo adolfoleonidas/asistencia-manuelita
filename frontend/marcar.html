@@ -538,6 +538,16 @@ async function submitRegister(event) {
 }
 
 // =====================================================
+// UTILIDAD DE FECHA LOCAL
+// =====================================================
+function getLocalDateString(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// =====================================================
 // MARCAR ASISTENCIA
 // =====================================================
 async function markAttendance(employee) {
@@ -545,7 +555,7 @@ async function markAttendance(employee) {
 
     try {
         const now = new Date();
-        const today = now.toISOString().split('T')[0];
+        const today = getLocalDateString(now);
         const time = now.toTimeString().split(' ')[0]; // Formato HH:MM:SS (8 chars)
         let tipo = 'ENTRADA';
 
@@ -698,7 +708,7 @@ async function tryQuickMark(dni) {
         state.employee = employee;
 
         const now = new Date();
-        const today = now.toISOString().split('T')[0];
+        const today = getLocalDateString(now);
         let hasEntrada = false, hasSalida = false;
 
         try {
