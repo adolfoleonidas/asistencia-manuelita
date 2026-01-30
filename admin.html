@@ -1747,11 +1747,10 @@ function exportAsistencias() {
     const fechaInicio = document.getElementById('filterFechaInicio').value;
     const fechaFin = document.getElementById('filterFechaFin').value;
     const rangoFecha = fechaInicio === fechaFin ? fechaInicio : fechaInicio + ' a ' + fechaFin;
-    const modeLabel = isGrouped ? ' (Agrupada)' : '';
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l');
     doc.setFontSize(20); doc.setTextColor(22, 163, 74);
-    doc.text('Manuelita - Reporte de Asistencia' + modeLabel, 14, 22);
+    doc.text('Manuelita - Reporte de Asistencia', 14, 22);
     doc.setFontSize(11); doc.setTextColor(100);
     doc.text('Fecha: ' + rangoFecha + ' | Total: ' + exportData.length + ' registros | Por: ' + (state.currentUser?.nombre || 'Admin'), 14, 32);
     doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: exportData.map(a => cols.map(c => c.renderPdf(a))), headStyles: { fillColor: [22, 163, 74] } });
