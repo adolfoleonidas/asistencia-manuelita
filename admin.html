@@ -273,6 +273,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
                         Usuarios Admin
                     </a>
+                    <a class="nav-item" id="navAuditLog" onclick="showPage('audit',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        Registro de Actividades
+                    </a>
                     <a class="nav-item" id="navConfiguracion" onclick="showPage('configuracion',this)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         Configuración
@@ -336,6 +340,10 @@
                         <div class="card-header"><h2><i data-lucide="activity" style="width:18px;height:18px"></i> Actividad Reciente</h2><button class="btn btn-sm btn-secondary" onclick="showPage('asistencias',document.querySelector('[onclick*=asistencias]'))">Ver todo</button></div>
                         <div class="card-body no-padding"><ul class="activity-list" id="activityList"></ul></div>
                     </div>
+                    <div class="card" style="margin-top:24px;display:none" id="dashboardAuditCard">
+                        <div class="card-header"><h2><i data-lucide="shield" style="width:18px;height:18px"></i> Actividad de Admins (Hoy)</h2><button class="btn btn-sm btn-secondary" onclick="showPage('audit',document.querySelector('[onclick*=audit]'))">Ver todo</button></div>
+                        <div class="card-body no-padding"><ul class="activity-list" id="dashboardAuditList"></ul></div>
+                    </div>
                 </div>
                 <!-- Trabajadores -->
                 <div class="page" id="page-trabajadores">
@@ -382,6 +390,27 @@
                         <button class="btn btn-secondary btn-columns" onclick="openColumnConfigModal('usuarios')"><i data-lucide="columns" style="width:16px;height:16px"></i> <span class="btn-text">Columnas</span></button>
                     </div>
                     <div class="table-container"><table><thead id="theadUsuarios"></thead><tbody id="tablaUsuarios"></tbody></table></div>
+                </div>
+                <!-- Registro de Actividades -->
+                <div class="page" id="page-audit">
+                    <div class="stats-grid" id="auditStatsGrid" style="margin-bottom:24px">
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon blue"><i data-lucide="log-in" style="width:24px;height:24px;color:var(--info)"></i></div></div><div class="stat-card-value" id="auditStatLogins">0</div><div class="stat-card-label">Logins hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon green"><i data-lucide="activity" style="width:24px;height:24px;color:var(--primary)"></i></div></div><div class="stat-card-value" id="auditStatAcciones">0</div><div class="stat-card-label">Acciones hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon yellow"><i data-lucide="users" style="width:24px;height:24px;color:var(--warning)"></i></div></div><div class="stat-card-value" id="auditStatUsuarios">0</div><div class="stat-card-label">Usuarios activos hoy</div></div>
+                        <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon red"><i data-lucide="shield" style="width:24px;height:24px;color:var(--error)"></i></div></div><div class="stat-card-value" id="auditStatTotal">0</div><div class="stat-card-label">Total registros</div></div>
+                    </div>
+                    <div class="card" style="margin-bottom:24px">
+                        <div class="card-header"><h2><i data-lucide="clock" style="width:18px;height:18px"></i> Ultimo Acceso por Usuario</h2></div>
+                        <div class="card-body no-padding">
+                            <div class="table-container"><table><thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Ultimo Login</th><th>Logins Hoy</th><th>Total Acciones Hoy</th></tr></thead><tbody id="tablaAuditUsuarios"></tbody></table></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h2><i data-lucide="list" style="width:18px;height:18px"></i> Historial de Actividades</h2><div style="display:flex;gap:8px;align-items:center"><select id="auditFilterAccion" onchange="filterAuditLog()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px"><option value="">Todas las acciones</option><option value="LOGIN">Login</option><option value="LOGOUT">Logout</option><option value="NAVIGATE">Navegaci&oacute;n</option><option value="CREATE">Crear</option><option value="UPDATE">Actualizar</option><option value="DELETE">Eliminar</option><option value="EXPORT">Exportar</option><option value="CONFIG">Configuraci&oacute;n</option></select><select id="auditFilterUsuario" onchange="filterAuditLog()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px"><option value="">Todos los usuarios</option></select><input type="date" id="auditFilterFecha" onchange="filterAuditLog()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px"></div></div>
+                        <div class="card-body no-padding">
+                            <div class="table-container"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Usuario</th><th>Acci&oacute;n</th><th>Detalle</th><th>Secci&oacute;n</th></tr></thead><tbody id="tablaAuditLog"></tbody></table></div>
+                        </div>
+                    </div>
                 </div>
                 <!-- Configuración -->
                 <div class="page" id="page-configuracion">
@@ -529,6 +558,7 @@ let state = {
     asistencias: [],
     puntos: [],
     usuarios: [],
+    auditLogs: [],
     currentUser: null,
     columnPrefs: null
 };
@@ -985,6 +1015,7 @@ async function showApp() {
     document.getElementById('filterFechaFin').value = todayStr;
     document.getElementById('configSupabaseUrl').value = SUPABASE_URL;
     document.getElementById('configSupabaseKey').value = SUPABASE_KEY;
+    document.getElementById('auditFilterFecha').value = getLocalDateString();
     await loadColumnPrefs();
     renderAllTableHeads();
     updateViewToggleButton();
@@ -1054,6 +1085,7 @@ async function handleLogin(event) {
             errorEl.classList.remove('show');
             await showApp();
             showToast('¡Bienvenido!', 'success');
+            logActivity('LOGIN', 'Ingresó al sistema', 'auth');
         }
     } catch (error) {
         errorEl.textContent = 'Error de conexión. Verifica tu internet.';
@@ -1065,6 +1097,7 @@ async function handleLogin(event) {
 }
 
 async function handleLogout() {
+    await logActivity('LOGOUT', 'Cerró sesión', 'auth');
     await db.auth.signOut();
     state.currentUser = null;
     state.columnPrefs = null;
@@ -1088,6 +1121,9 @@ function updateUserUI() {
     // Ocultar Usuarios Admin para admin (solo super_admin)
     const navUsuarios = document.getElementById('navUsuarios');
     if (navUsuarios) navUsuarios.style.display = isSA ? 'flex' : 'none';
+    // Ocultar Registro de Actividades para admin (solo super_admin)
+    const navAudit = document.getElementById('navAuditLog');
+    if (navAudit) navAudit.style.display = isSA ? 'flex' : 'none';
     // Ocultar Configuración para admin (solo super_admin)
     const navConfig = document.getElementById('navConfiguracion');
     if (navConfig) navConfig.style.display = isSA ? 'flex' : 'none';
@@ -1097,6 +1133,140 @@ function updateUserUI() {
 
 function isSuperAdmin() {
     return state.currentUser && state.currentUser.rol === 'super_admin';
+}
+
+// =====================================================
+// REGISTRO DE ACTIVIDADES (AUDITORÍA)
+// =====================================================
+async function logActivity(accion, detalle, seccion) {
+    if (!state.currentUser || !db) return;
+    try {
+        await db.from('audit_log').insert({
+            user_id: state.currentUser.id,
+            username: state.currentUser.username || state.currentUser.nombre,
+            accion: accion,
+            detalle: detalle,
+            seccion: seccion || null,
+            user_agent: navigator.userAgent
+        });
+    } catch (e) {
+        // No bloquear la acción si falla el log
+    }
+}
+
+async function loadAuditLog() {
+    if (!isSuperAdmin()) return;
+    try {
+        const { data } = await db.from('audit_log').select('*').order('timestamp', { ascending: false }).limit(500);
+        state.auditLogs = data || [];
+    } catch (e) {
+        state.auditLogs = [];
+    }
+}
+
+function updateAuditDashboard() {
+    if (!isSuperAdmin()) return;
+    const today = getLocalDateString();
+    const todayLogs = state.auditLogs.filter(l => l.timestamp && l.timestamp.startsWith(today));
+    const logins = todayLogs.filter(l => l.accion === 'LOGIN');
+    const usuarios = new Set(todayLogs.map(l => l.username));
+
+    document.getElementById('auditStatLogins').textContent = logins.length;
+    document.getElementById('auditStatAcciones').textContent = todayLogs.length;
+    document.getElementById('auditStatUsuarios').textContent = usuarios.size;
+    document.getElementById('auditStatTotal').textContent = state.auditLogs.length;
+
+    // Tabla de último acceso por usuario
+    const userMap = {};
+    state.auditLogs.forEach(l => {
+        if (!userMap[l.username]) {
+            userMap[l.username] = { username: l.username, lastLogin: null, loginsToday: 0, actionsToday: 0 };
+        }
+        if (l.accion === 'LOGIN' && (!userMap[l.username].lastLogin || l.timestamp > userMap[l.username].lastLogin)) {
+            userMap[l.username].lastLogin = l.timestamp;
+        }
+        if (l.timestamp && l.timestamp.startsWith(today)) {
+            userMap[l.username].actionsToday++;
+            if (l.accion === 'LOGIN') userMap[l.username].loginsToday++;
+        }
+    });
+
+    const tbody = document.getElementById('tablaAuditUsuarios');
+    const users = Object.values(userMap).sort((a, b) => (b.lastLogin || '').localeCompare(a.lastLogin || ''));
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay registros de actividad</td></tr>';
+        return;
+    }
+    tbody.innerHTML = users.map(u => {
+        const profile = state.usuarios.find(p => p.username === u.username);
+        const email = profile ? escapeHtml(profile.email || '') : '';
+        const rol = profile ? (profile.rol === 'super_admin' ? '<span class="badge super_admin">Super Admin</span>' : '<span class="badge admin">Admin</span>') : '-';
+        const lastLogin = u.lastLogin ? new Date(u.lastLogin).toLocaleString('es-PE') : 'Nunca';
+        return '<tr><td><strong>' + escapeHtml(u.username) + '</strong></td><td>' + email + '</td><td>' + rol + '</td><td>' + escapeHtml(lastLogin) + '</td><td>' + u.loginsToday + '</td><td>' + u.actionsToday + '</td></tr>';
+    }).join('');
+
+    // Poblar filtro de usuarios
+    const select = document.getElementById('auditFilterUsuario');
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">Todos los usuarios</option>';
+    const uniqueUsers = [...new Set(state.auditLogs.map(l => l.username))].sort();
+    uniqueUsers.forEach(u => {
+        select.innerHTML += '<option value="' + escapeHtml(u) + '">' + escapeHtml(u) + '</option>';
+    });
+    select.value = currentVal;
+
+    filterAuditLog();
+}
+
+async function updateDashboardAuditList() {
+    if (!isSuperAdmin()) return;
+    await loadAuditLog();
+    const today = getLocalDateString();
+    const todayLogs = state.auditLogs.filter(l => l.timestamp && l.timestamp.startsWith(today)).slice(0, 10);
+    const list = document.getElementById('dashboardAuditList');
+    if (todayLogs.length === 0) {
+        list.innerHTML = '<li class="activity-item"><div style="text-align:center;width:100%;padding:30px;color:var(--gray-400)">No hay actividad de admins hoy</div></li>';
+        return;
+    }
+    const accionIcons = { 'LOGIN': '🔑', 'LOGOUT': '🚪', 'NAVIGATE': '📄', 'CREATE': '➕', 'UPDATE': '✏️', 'DELETE': '🗑️', 'EXPORT': '📊', 'CONFIG': '⚙️' };
+    list.innerHTML = todayLogs.map(l => {
+        const ts = new Date(l.timestamp);
+        const hora = ts.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+        const icon = accionIcons[l.accion] || '📋';
+        return '<li class="activity-item"><div class="activity-icon">' + icon + '</div><div class="activity-content"><div class="activity-name">' + escapeHtml(l.username || '') + '</div><div class="activity-detail">' + escapeHtml(l.accion) + ' • ' + escapeHtml(l.detalle || '') + '</div></div><div class="activity-time">' + hora + '</div></li>';
+    }).join('');
+}
+
+function filterAuditLog() {
+    const accion = document.getElementById('auditFilterAccion').value;
+    const usuario = document.getElementById('auditFilterUsuario').value;
+    const fecha = document.getElementById('auditFilterFecha').value;
+
+    let filtered = state.auditLogs;
+    if (accion) filtered = filtered.filter(l => l.accion === accion);
+    if (usuario) filtered = filtered.filter(l => l.username === usuario);
+    if (fecha) filtered = filtered.filter(l => l.timestamp && l.timestamp.startsWith(fecha));
+
+    const tbody = document.getElementById('tablaAuditLog');
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay registros</td></tr>';
+        return;
+    }
+
+    const accionBadges = {
+        'LOGIN': 'green', 'LOGOUT': 'yellow', 'NAVIGATE': 'blue',
+        'CREATE': 'green', 'UPDATE': 'blue', 'DELETE': 'red',
+        'EXPORT': 'yellow', 'CONFIG': 'red'
+    };
+
+    tbody.innerHTML = filtered.slice(0, 200).map(l => {
+        const ts = new Date(l.timestamp);
+        const fechaStr = getLocalDateString(ts);
+        const horaStr = ts.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const badgeColor = accionBadges[l.accion] || 'blue';
+        const badgeStyle = 'display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:var(--' + badgeColor + '-50, #f0fdf4);color:var(--' + badgeColor + '-700, #15803d)';
+        return '<tr><td>' + escapeHtml(fechaStr) + '</td><td>' + escapeHtml(horaStr) + '</td><td><strong>' + escapeHtml(l.username || '') + '</strong></td><td><span style="' + badgeStyle + '">' + escapeHtml(l.accion) + '</span></td><td>' + escapeHtml(l.detalle || '') + '</td><td>' + escapeHtml(l.seccion || '-') + '</td></tr>';
+    }).join('');
 }
 
 // =====================================================
@@ -1114,6 +1284,7 @@ function saveSupabaseConfig() {
     localStorage.setItem('supabase_url', url);
     localStorage.setItem('supabase_key', key);
     showToast('Configuración guardada. Recargando...', 'success');
+    logActivity('CONFIG', 'Actualizó configuración de Supabase', 'configuracion');
     setTimeout(() => location.reload(), 1000);
 }
 
@@ -1125,12 +1296,14 @@ function showPage(pageName, element) {
     if (element) element.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-' + pageName).classList.add('active');
-    const titles = { 'dashboard': 'Dashboard', 'trabajadores': 'Trabajadores', 'asistencias': 'Asistencias', 'puntos': 'Puntos QR', 'usuarios': 'Usuarios Admin', 'configuracion': 'Configuración' };
+    const titles = { 'dashboard': 'Dashboard', 'trabajadores': 'Trabajadores', 'asistencias': 'Asistencias', 'puntos': 'Puntos QR', 'usuarios': 'Usuarios Admin', 'audit': 'Registro de Actividades', 'configuracion': 'Configuración' };
     document.getElementById('pageTitle').textContent = titles[pageName];
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('show');
     if (pageName === 'puntos') setTimeout(updatePuntosGrid, 100);
     if (pageName === 'usuarios') loadUsers().then(() => updateTablaUsuarios());
+    if (pageName === 'audit') loadAuditLog().then(() => { loadUsers().then(() => updateAuditDashboard()); });
+    logActivity('NAVIGATE', 'Visitó sección ' + (titles[pageName] || pageName), pageName);
 }
 
 function toggleSidebar() {
@@ -1168,6 +1341,14 @@ function updateDashboard() {
     document.getElementById('quickAsistencia').textContent = pct + '%';
     document.getElementById('badgeTrabajadores').textContent = state.trabajadores.length;
     updateActivityList(todayRecords.slice(-10).reverse());
+    // Panel de auditoría en dashboard (solo super_admin)
+    const auditCard = document.getElementById('dashboardAuditCard');
+    if (isSuperAdmin()) {
+        auditCard.style.display = 'block';
+        updateDashboardAuditList();
+    } else {
+        auditCard.style.display = 'none';
+    }
 }
 
 function updateActivityList(records) {
@@ -1243,6 +1424,7 @@ async function saveTrabajador(e) {
         }
         closeModalTrabajador();
         showToast('Trabajador ' + (editingDni ? 'actualizado' : 'agregado'), 'success');
+        logActivity(editingDni ? 'UPDATE' : 'CREATE', (editingDni ? 'Actualizó' : 'Agregó') + ' trabajador ' + nombre + ' (DNI: ' + dni + ')', 'trabajadores');
         await loadEmployees();
         updateAll();
     } catch (error) {
@@ -1256,9 +1438,11 @@ async function deleteTrabajador(dni) {
     if (!confirm('¿Eliminar este trabajador?')) return;
     showLoading(true);
     try {
+        const worker = state.trabajadores.find(t => t.dni === dni);
         const { error } = await db.from('empleados').delete().eq('dni', dni);
         if (error) throw error;
         showToast('Trabajador eliminado', 'success');
+        logActivity('DELETE', 'Eliminó trabajador ' + (worker ? worker.nombre : '') + ' (DNI: ' + dni + ')', 'trabajadores');
         await loadEmployees();
         updateAll();
     } catch (error) {
@@ -1500,6 +1684,7 @@ async function savePunto(e) {
         }
         closeModalPunto();
         showToast('Punto creado', 'success');
+        logActivity('CREATE', 'Creó punto QR: ' + punto.nombre + ' (' + punto.id + ')', 'puntos');
         await loadPoints();
         updatePuntosGrid();
     } catch (error) {
@@ -1513,9 +1698,11 @@ async function deletePunto(id) {
     if (!confirm('¿Eliminar este punto?')) return;
     showLoading(true);
     try {
+        const punto = state.puntos.find(p => p.id === id);
         const { error } = await db.from('qr_points').delete().eq('id', id);
         if (error) throw error;
         showToast('Punto eliminado', 'success');
+        logActivity('DELETE', 'Eliminó punto QR: ' + (punto ? punto.nombre : id) + ' (' + id + ')', 'puntos');
         await loadPoints();
         updatePuntosGrid();
     } catch (error) {
@@ -1636,6 +1823,7 @@ async function saveUsuario(event) {
         } else {
             showToast('Usuario creado correctamente', 'success');
         }
+        logActivity('CREATE', 'Creó usuario admin: ' + username + ' (' + email + ', rol: ' + rol + ')', 'usuarios');
 
         closeModalUsuario();
         await loadUsers();
@@ -1652,11 +1840,13 @@ async function deleteUsuario(id) {
 
     showLoading(true);
     try {
+        const usuario = state.usuarios.find(u => u.id === id);
         // Desactivar en user_profiles (no podemos eliminar de auth sin service_role)
         const { error } = await db.from('user_profiles').update({ activo: false }).eq('id', id);
         if (error) throw error;
 
         showToast('Usuario desactivado', 'success');
+        logActivity('DELETE', 'Desactivó usuario admin: ' + (usuario ? usuario.username : id), 'usuarios');
         await loadUsers();
         updateTablaUsuarios();
     } catch (error) {
@@ -1734,6 +1924,7 @@ function exportTrabajadores() {
     doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: state.trabajadores.map(t => cols.map(c => c.renderPdf(t))), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('trabajadores_manuelita.pdf');
     showToast('PDF generado', 'success');
+    logActivity('EXPORT', 'Exportó lista de trabajadores a PDF (' + state.trabajadores.length + ' registros)', 'trabajadores');
 }
 
 function exportAsistencias() {
@@ -1756,6 +1947,7 @@ function exportAsistencias() {
     doc.autoTable({ startY: 40, head: [cols.map(c => c.label)], body: exportData.map(a => cols.map(c => c.renderPdf(a))), headStyles: { fillColor: [22, 163, 74] } });
     doc.save('asistencia_' + fechaInicio + '.pdf');
     showToast('PDF generado', 'success');
+    logActivity('EXPORT', 'Exportó asistencias a PDF (' + exportData.length + ' registros, fecha: ' + rangoFecha + ')', 'asistencias');
 }
 
 function exportAsistenciasExcel() {
@@ -1778,6 +1970,7 @@ function exportAsistenciasExcel() {
     ws['!cols'] = cols.map(() => ({ wch: 18 }));
     XLSX.writeFile(wb, 'asistencias_' + fechaInicio + '.xlsx');
     showToast('Excel generado', 'success');
+    logActivity('EXPORT', 'Exportó asistencias a Excel (' + exportData.length + ' registros)', 'asistencias');
 }
 
 async function downloadBackup() {
@@ -1798,9 +1991,10 @@ async function downloadBackup() {
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'backup_manuelita_' + new Date().toISOString().split('T')[0] + '.json';
+        a.href = url; a.download = 'backup_manuelita_' + getLocalDateString() + '.json';
         a.click(); URL.revokeObjectURL(url);
         showToast('Backup descargado', 'success');
+        logActivity('EXPORT', 'Descargó backup JSON completo', 'configuracion');
     } catch (e) {
         showToast('Error al generar backup', 'error');
     } finally {
@@ -1835,6 +2029,7 @@ async function saveGpsConfig() {
     try {
         await db.from('system_config').upsert({ key: 'gps_enabled', value: enabled ? 'true' : 'false' });
         showToast(enabled ? 'GPS activado' : 'GPS desactivado', 'success');
+        logActivity('CONFIG', enabled ? 'Activó verificación GPS' : 'Desactivó verificación GPS', 'configuracion');
     } catch (e) {
         showToast('Error guardando configuración', 'error');
     }
