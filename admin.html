@@ -442,6 +442,23 @@
         </div>
     </div>
 
+    <!-- Modal Asistencia -->
+    <div class="modal" id="modalAsistencia">
+        <div class="modal-content">
+            <div class="modal-header"><h2>Editar Asistencia</h2><button class="modal-close" onclick="closeModalAsistencia()">✕</button></div>
+            <div class="modal-body">
+                <form id="formAsistencia" onsubmit="saveAsistencia(event)">
+                    <input type="hidden" id="editingAsistenciaId">
+                    <div class="form-group"><label>Trabajador</label><input type="text" id="inputAsistenciaNombre" disabled></div>
+                    <div class="form-group"><label>Fecha *</label><input type="date" id="inputAsistenciaFecha" required></div>
+                    <div class="form-group"><label>Hora *</label><input type="time" id="inputAsistenciaHora" step="1" required></div>
+                    <div class="form-group"><label>Tipo *</label><select id="inputAsistenciaTipo" required><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option></select></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModalAsistencia()">Cancelar</button><button class="btn btn-primary" onclick="document.getElementById('formAsistencia').requestSubmit()">Guardar</button></div>
+        </div>
+    </div>
+
     <!-- Modal Punto -->
     <div class="modal" id="modalPunto">
         <div class="modal-content">
@@ -1270,6 +1287,45 @@ async function deleteAsistencia(id) {
     }
 }
 
+function editAsistencia(id) {
+    const a = state.asistencias.find(r => r.id === id);
+    if (!a) { showToast('Registro no encontrado', 'error'); return; }
+    openModalAsistencia(a);
+}
+
+function openModalAsistencia(a) {
+    document.getElementById('editingAsistenciaId').value = a.id;
+    document.getElementById('inputAsistenciaNombre').value = a.nombre;
+    document.getElementById('inputAsistenciaFecha').value = a.fecha;
+    document.getElementById('inputAsistenciaHora').value = a.hora;
+    document.getElementById('inputAsistenciaTipo').value = a.tipo;
+    document.getElementById('modalAsistencia').classList.add('show');
+}
+
+function closeModalAsistencia() { document.getElementById('modalAsistencia').classList.remove('show'); }
+
+async function saveAsistencia(e) {
+    e.preventDefault();
+    const id = document.getElementById('editingAsistenciaId').value;
+    const fecha = document.getElementById('inputAsistenciaFecha').value;
+    const hora = document.getElementById('inputAsistenciaHora').value;
+    const tipo = document.getElementById('inputAsistenciaTipo').value;
+    const timestamp = fecha + 'T' + hora;
+    showLoading(true);
+    try {
+        const { error } = await db.from('asistencias').update({ fecha, hora, tipo, timestamp }).eq('id', id);
+        if (error) throw error;
+        showToast('Asistencia actualizada', 'success');
+        closeModalAsistencia();
+        await loadAttendance();
+        updateAll();
+    } catch (error) {
+        showToast('Error al actualizar asistencia', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
 function getFilteredAsistencias(skipTipo) {
     const search = document.getElementById('searchAsistencia').value.toLowerCase();
     const fechaInicio = document.getElementById('filterFechaInicio').value;
@@ -1367,6 +1423,8 @@ function updateTablaAsistencias() {
         tbody.innerHTML = grouped.map(a => {
             if (!isSA) return renderTableRow(tableKey, a);
             let btns = '';
+            if (a.entradaId) btns += '<button class="btn btn-sm btn-secondary" onclick="editAsistencia(\'' + a.entradaId + '\')" title="Editar entrada"><i data-lucide="pencil" style="width:14px;height:14px"></i> E</button>';
+            if (a.salidaId) btns += '<button class="btn btn-sm btn-secondary" onclick="editAsistencia(\'' + a.salidaId + '\')" title="Editar salida"><i data-lucide="pencil" style="width:14px;height:14px"></i> S</button>';
             if (a.entradaId) btns += '<button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.entradaId + '\')" title="Eliminar entrada"><i data-lucide="trash-2" style="width:14px;height:14px"></i> E</button>';
             if (a.salidaId) btns += '<button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.salidaId + '\')" title="Eliminar salida"><i data-lucide="trash-2" style="width:14px;height:14px"></i> S</button>';
             const actions = '<div class="action-btns">' + btns + '</div>';
@@ -1377,7 +1435,7 @@ function updateTablaAsistencias() {
         if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
         tbody.innerHTML = filtered.map(a => {
             if (!isSA) return renderTableRow(tableKey, a);
-            const actions = '<div class="action-btns"><button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.id + '\')" title="Eliminar registro"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button></div>';
+            const actions = '<div class="action-btns"><button class="btn btn-sm btn-secondary" onclick="editAsistencia(\'' + a.id + '\')" title="Editar registro"><i data-lucide="pencil" style="width:14px;height:14px"></i></button><button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.id + '\')" title="Eliminar registro"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button></div>';
             return renderTableRow(tableKey, a, actions);
         }).join('');
     }
