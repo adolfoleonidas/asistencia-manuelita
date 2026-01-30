@@ -102,6 +102,34 @@ CREATE POLICY "profiles_update" ON user_profiles FOR UPDATE USING (
   id = auth.uid() OR EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND rol = 'super_admin')
 );
 
+-- 6. TABLA REGISTRO DE ACTIVIDADES (AUDITORÍA)
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  username VARCHAR(100),
+  accion VARCHAR(50) NOT NULL,
+  detalle TEXT,
+  seccion VARCHAR(50),
+  ip VARCHAR(45),
+  user_agent TEXT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_accion ON audit_log(accion);
+
+-- AUDIT LOG: Inserción para autenticados, lectura solo super_admin, sin update/delete
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "audit_log_insert" ON audit_log
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "audit_log_select" ON audit_log
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND rol = 'super_admin')
+  );
+
 -- =====================================================
 -- FUNCIÓN PARA CREAR USUARIO ADMIN INICIAL
 -- =====================================================
