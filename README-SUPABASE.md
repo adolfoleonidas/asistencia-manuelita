@@ -28,7 +28,7 @@ Ya no es necesaria porque todo se conecta directamente a Supabase.
 
 En tu proyecto de Supabase, ve a **Settings > API**:
 
-- **Project URL**: `https://xxxx.supabase.co`
+- **Project URL**: `https://ecruxlrjzatkbrpgdcaj.supabase.co`
 - **anon public key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
 
 ### 3. Crear las Tablas
