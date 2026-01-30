@@ -254,13 +254,13 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                         Dashboard
                     </a>
-                    <a class="nav-item" onclick="showPage('trabajadores',this)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        Trabajadores<span class="badge" id="badgeTrabajadores">0</span>
-                    </a>
                     <a class="nav-item" onclick="showPage('asistencias',this)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         Asistencias
+                    </a>
+                    <a class="nav-item" onclick="showPage('trabajadores',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Trabajadores<span class="badge" id="badgeTrabajadores">0</span>
                     </a>
                 </div>
                 <div class="nav-section">
@@ -318,7 +318,7 @@
                     <div class="dashboard-grid">
                         <div class="card">
                             <div class="card-header"><h2><i data-lucide="bar-chart-2" style="width:18px;height:18px"></i> Asistencia Semanal</h2></div>
-                            <div class="card-body"><canvas id="chartAsistencia" height="200"></canvas></div>
+                            <div class="card-body"><div style="position:relative;height:250px"><canvas id="chartAsistencia"></canvas></div></div>
                         </div>
                         <div class="card">
                             <div class="card-header"><h2><i data-lucide="pie-chart" style="width:18px;height:18px"></i> Resumen</h2></div>
@@ -328,7 +328,7 @@
                                     <div class="quick-stat"><span class="quick-stat-label">Asistencia hoy</span><span class="quick-stat-value" id="quickAsistencia">0%</span></div>
                                     <div class="quick-stat"><span class="quick-stat-label">Puntos activos</span><span class="quick-stat-value" id="quickPuntos">0</span></div>
                                 </div>
-                                <canvas id="chartTipos" height="150" style="margin-top:20px"></canvas>
+                                <div style="position:relative;height:180px;margin-top:20px"><canvas id="chartTipos"></canvas></div>
                             </div>
                         </div>
                     </div>
@@ -724,12 +724,13 @@ function renderTableRow(tableKey, item, actionsHtml, extra) {
 }
 
 function renderAllTableHeads() {
+    const isSA = isSuperAdmin();
     const thTrab = document.getElementById('theadTrabajadores');
     const thAsis = document.getElementById('theadAsistencias');
     const thUsu = document.getElementById('theadUsuarios');
-    if (thTrab) thTrab.innerHTML = renderTableHead('trabajadores', true);
-    if (thAsis) thAsis.innerHTML = renderTableHead(getActiveAsistenciasTableKey(), false);
-    if (thUsu) thUsu.innerHTML = renderTableHead('usuarios', true);
+    if (thTrab) thTrab.innerHTML = renderTableHead('trabajadores', isSA);
+    if (thAsis) thAsis.innerHTML = renderTableHead(getActiveAsistenciasTableKey(), isSA);
+    if (thUsu) thUsu.innerHTML = renderTableHead('usuarios', isSA);
 }
 
 function openColumnConfigModal(tableKey) {
@@ -1166,10 +1167,12 @@ function updateTablaTrabajadores() {
     const search = document.getElementById('searchTrabajador').value.toLowerCase();
     let filtered = state.trabajadores;
     if (search) filtered = filtered.filter(t => t.dni.includes(search) || t.nombre.toLowerCase().includes(search) || t.cargo.toLowerCase().includes(search) || t.area.toLowerCase().includes(search));
+    const isSA = isSuperAdmin();
     const visCols = getVisibleColumns('trabajadores');
-    const colspan = visCols.length + 1; // +1 for actions
+    const colspan = visCols.length + (isSA ? 1 : 0);
     if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay trabajadores</h3><p>Agrega trabajadores para comenzar</p></td></tr>'; return; }
     tbody.innerHTML = filtered.map(t => {
+        if (!isSA) return renderTableRow('trabajadores', t);
         const actions = '<div class="action-btns"><button class="btn btn-sm btn-secondary" onclick="editTrabajador(\'' + escapeHtml(t.dni) + '\')">Editar</button><button class="btn btn-sm btn-danger" onclick="deleteTrabajador(\'' + escapeHtml(t.dni) + '\')">Eliminar</button></div>';
         return renderTableRow('trabajadores', t, actions);
     }).join('');
@@ -1251,6 +1254,22 @@ async function deleteTrabajador(dni) {
 // =====================================================
 // ASISTENCIAS
 // =====================================================
+async function deleteAsistencia(id) {
+    if (!confirm('¿Eliminar este registro de asistencia?')) return;
+    showLoading(true);
+    try {
+        const { error } = await db.from('asistencias').delete().eq('id', id);
+        if (error) throw error;
+        showToast('Registro eliminado', 'success');
+        await loadAttendance();
+        updateAll();
+    } catch (error) {
+        showToast('Error al eliminar registro', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
 function getFilteredAsistencias(skipTipo) {
     const search = document.getElementById('searchAsistencia').value.toLowerCase();
     const fechaInicio = document.getElementById('filterFechaInicio').value;
@@ -1305,7 +1324,9 @@ function getGroupedAsistencias(filtered, tipoFilter) {
             horaSalida: salida ? salida.hora : null,
             punto: entrada ? (entrada.punto || '-') : (salida ? (salida.punto || '-') : '-'),
             lat: entrada ? entrada.lat : (salida ? salida.lat : null),
-            lng: entrada ? entrada.lng : (salida ? salida.lng : null)
+            lng: entrada ? entrada.lng : (salida ? salida.lng : null),
+            entradaId: entrada ? entrada.id : null,
+            salidaId: salida ? salida.id : null
         };
     }).sort((a, b) => {
         if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
@@ -1335,18 +1356,30 @@ function updateViewToggleButton() {
 function updateTablaAsistencias() {
     const tbody = document.getElementById('tablaAsistencias');
     const tableKey = getActiveAsistenciasTableKey();
+    const isSA = isSuperAdmin();
     const visCols = getVisibleColumns(tableKey);
-    const colspan = visCols.length;
+    const colspan = visCols.length + (isSA ? 1 : 0);
     if (getAsistenciasViewMode() === 'grouped') {
         const allFiltered = getFilteredAsistencias(true);
         const tipoFilter = document.getElementById('filterTipo').value;
         const grouped = getGroupedAsistencias(allFiltered, tipoFilter);
         if (grouped.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-        tbody.innerHTML = grouped.map(a => renderTableRow(tableKey, a)).join('');
+        tbody.innerHTML = grouped.map(a => {
+            if (!isSA) return renderTableRow(tableKey, a);
+            let btns = '';
+            if (a.entradaId) btns += '<button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.entradaId + '\')" title="Eliminar entrada"><i data-lucide="trash-2" style="width:14px;height:14px"></i> E</button>';
+            if (a.salidaId) btns += '<button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.salidaId + '\')" title="Eliminar salida"><i data-lucide="trash-2" style="width:14px;height:14px"></i> S</button>';
+            const actions = '<div class="action-btns">' + btns + '</div>';
+            return renderTableRow(tableKey, a, actions);
+        }).join('');
     } else {
         const filtered = getFilteredAsistencias();
         if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay registros</h3><p>No se encontraron asistencias</p></td></tr>'; return; }
-        tbody.innerHTML = filtered.map(a => renderTableRow(tableKey, a)).join('');
+        tbody.innerHTML = filtered.map(a => {
+            if (!isSA) return renderTableRow(tableKey, a);
+            const actions = '<div class="action-btns"><button class="btn btn-sm btn-danger" onclick="deleteAsistencia(\'' + a.id + '\')" title="Eliminar registro"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button></div>';
+            return renderTableRow(tableKey, a, actions);
+        }).join('');
     }
     lucide.createIcons();
 }
@@ -1464,10 +1497,10 @@ function updateTablaUsuarios() {
     const search = document.getElementById('searchUsuario').value.toLowerCase();
     let filtered = state.usuarios;
     if (search) filtered = filtered.filter(u => u.username.toLowerCase().includes(search) || u.nombre.toLowerCase().includes(search) || (u.email && u.email.toLowerCase().includes(search)));
-    const visCols = getVisibleColumns('usuarios');
-    const colspan = visCols.length + 1; // +1 for actions
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay usuarios</h3><p>Agrega un administrador</p></td></tr>'; return; }
     const isSA = isSuperAdmin();
+    const visCols = getVisibleColumns('usuarios');
+    const colspan = visCols.length + (isSA ? 1 : 0);
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="empty-state"><h3>No hay usuarios</h3><p>Agrega un administrador</p></td></tr>'; return; }
     tbody.innerHTML = filtered.map(u => {
         const isCurrentUser = state.currentUser && u.id === state.currentUser.id;
         const actions = isSA && !isCurrentUser ? '<button class="btn btn-sm btn-danger" onclick="deleteUsuario(\'' + u.id + '\')"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>' : '-';
