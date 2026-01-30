@@ -961,10 +961,10 @@ async function showApp() {
     updateUserUI();
     updateDateTime();
     setInterval(updateDateTime, 1000);
-    // Filtros de fecha: por defecto hoy
-    const today = new Date();
-    document.getElementById('filterFechaInicio').valueAsDate = today;
-    document.getElementById('filterFechaFin').valueAsDate = today;
+    // Filtros de fecha: por defecto hoy (usa fecha local, no UTC)
+    const todayStr = getLocalDateString();
+    document.getElementById('filterFechaInicio').value = todayStr;
+    document.getElementById('filterFechaFin').value = todayStr;
     document.getElementById('configSupabaseUrl').value = SUPABASE_URL;
     document.getElementById('configSupabaseKey').value = SUPABASE_KEY;
     await loadColumnPrefs();
