@@ -1310,7 +1310,7 @@ async function saveAsistencia(e) {
     const fecha = document.getElementById('inputAsistenciaFecha').value;
     const hora = document.getElementById('inputAsistenciaHora').value;
     const tipo = document.getElementById('inputAsistenciaTipo').value;
-    const timestamp = fecha + 'T' + hora;
+    const timestamp = new Date(fecha + 'T' + hora).toISOString();
     showLoading(true);
     try {
         const { error } = await db.from('asistencias').update({ fecha, hora, tipo, timestamp }).eq('id', id);
